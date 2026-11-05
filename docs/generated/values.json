@@ -1,0 +1,267 @@
+{
+ "rho": 1.1988,
+ "room": {
+  "temp_c": 20.0,
+  "pressure_pa": 101325.0,
+  "rel_humidity": 0.5
+ },
+ "rpm_limit": 8125.0,
+ "spec": {
+  "rpm_max": 8125.0,
+  "rpm_min": 1500.0,
+  "duty_design_max": 0.85,
+  "duty_target": 0.8,
+  "duty_nominal_min": 0.55,
+  "duty_low_min": 0.06,
+  "motor_i_frac": 0.7,
+  "esc_i_frac": 0.6,
+  "esc_v_frac": 0.9,
+  "rho": 1.1988441854083347,
+  "winding_temp_c": 60.0,
+  "r_leads": 0.03
+ },
+ "uiuc": {
+  "ct_lim": 0.1209,
+  "cp_lim": 0.0506,
+  "fm_lim": 0.663,
+  "thrust_n": 4.532,
+  "thrust_gf": 462.0,
+  "torque_nm": 0.0614,
+  "power_w": 52.2,
+  "rpm_range": [
+   3030.0,
+   7015.0
+  ],
+  "ct_3000": 0.0951,
+  "cp_3000": 0.0415,
+  "ct_7000": 0.1142,
+  "cp_7000": 0.0481
+ },
+ "apc": {
+  "ct_lim": 0.1372,
+  "cp_lim": 0.0544,
+  "fm_lim": 0.746,
+  "thrust_n": 5.144,
+  "thrust_gf": 525.0,
+  "torque_nm": 0.0659,
+  "power_w": 56.1,
+  "rpm_range": [
+   1000.0,
+   29000.0
+  ],
+  "ct_3000": 0.1361,
+  "cp_3000": 0.0552,
+  "ct_7000": 0.1369,
+  "cp_7000": 0.0544
+ },
+ "tip_mach_lim": 0.252,
+ "disk_area": 0.03243,
+ "p_ideal_lim": 34.6,
+ "validation": [
+  {
+   "label": "Scorpion SII-2212-885 @11.1V",
+   "rpm": 8279,
+   "thrust_g": 498,
+   "current_a": 6.47,
+   "throttle": "full",
+   "uiuc": {
+    "thrust_g": 484.076,
+    "i_motor": 6.36,
+    "p_motor_in": 65.6,
+    "p_shaft": 55.658,
+    "duty_est": 0.929
+   },
+   "apc": {
+    "thrust_g": 545.29,
+    "i_motor": 6.761,
+    "p_motor_in": 70.151,
+    "p_shaft": 59.413,
+    "duty_est": 0.935
+   }
+  },
+  {
+   "label": "Scorpion SII-2212-960 @11.1V",
+   "rpm": 8924,
+   "thrust_g": 580.3,
+   "current_a": 8.18,
+   "throttle": "full",
+   "uiuc": {
+    "thrust_g": 580.73,
+    "i_motor": 8.215,
+    "p_motor_in": 85.748,
+    "p_shaft": 71.626,
+    "duty_est": 0.94
+   },
+   "apc": {
+    "thrust_g": 634.458,
+    "i_motor": 8.515,
+    "p_motor_in": 89.227,
+    "p_shaft": 74.409,
+    "duty_est": 0.944
+   }
+  },
+  {
+   "label": "Scorpion SII-2215-900 @11.1V",
+   "rpm": 8419,
+   "thrust_g": null,
+   "current_a": 6.5,
+   "throttle": "full",
+   "uiuc": {
+    "thrust_g": 504.12,
+    "i_motor": 6.814,
+    "p_motor_in": 70.337,
+    "p_shaft": 58.879,
+    "duty_est": 0.93
+   },
+   "apc": {
+    "thrust_g": 564.061,
+    "i_motor": 7.199,
+    "p_motor_in": 74.701,
+    "p_shaft": 62.478,
+    "duty_est": 0.935
+   }
+  },
+  {
+   "label": "Cobra C-2213/26 @11.1V",
+   "rpm": 8470,
+   "thrust_g": null,
+   "current_a": 6.8,
+   "throttle": "full",
+   "uiuc": {
+    "thrust_g": 511.548,
+    "i_motor": 7.189,
+    "p_motor_in": 71.023,
+    "p_shaft": 60.085,
+    "duty_est": 0.89
+   },
+   "apc": {
+    "thrust_g": 570.979,
+    "i_motor": 7.586,
+    "p_motor_in": 75.343,
+    "p_shaft": 63.62,
+    "duty_est": 0.895
+   }
+  },
+  {
+   "label": "SunnySky X2212-980 @14.8V (a)",
+   "rpm": 7629,
+   "thrust_g": 400,
+   "current_a": 4.0,
+   "throttle": "partial",
+   "uiuc": {
+    "thrust_g": 397.579,
+    "i_motor": 6.039,
+    "p_motor_in": 50.368,
+    "p_shaft": 42.341,
+    "duty_est": 0.564
+   },
+   "apc": {
+    "thrust_g": 462.37,
+    "i_motor": 6.572,
+    "p_motor_in": 55.133,
+    "p_shaft": 46.489,
+    "duty_est": 0.567
+   }
+  },
+  {
+   "label": "SunnySky X2212-980 @14.8V (b)",
+   "rpm": 8440,
+   "thrust_g": 500,
+   "current_a": 5.4,
+   "throttle": "partial",
+   "uiuc": {
+    "thrust_g": 507.17,
+    "i_motor": 7.494,
+    "p_motor_in": 69.708,
+    "p_shaft": 59.374,
+    "duty_est": 0.628
+   },
+   "apc": {
+    "thrust_g": 566.904,
+    "i_motor": 7.909,
+    "p_motor_in": 73.869,
+    "p_shaft": 62.947,
+    "duty_est": 0.631
+   }
+  }
+ ],
+ "regen": {
+  "j_kgm2": 1.85780352e-05,
+  "j_gcm2": 186.0,
+  "energy_lim_j": 6.72,
+  "prop_mass_g": 7.1000000000000005
+ },
+ "reference": {
+  "motor": "Scorpion SII-2212-885",
+  "kv": 885.0,
+  "r_ohm": 0.151,
+  "i0_a": 0.41,
+  "km": 0.0278,
+  "kt": 0.01079,
+  "esc": "Hobbywing FlyFun 20A V5",
+  "v_set": 13.2,
+  "v_band": [
+   12.36,
+   18.58
+  ],
+  "nominal": {
+   "rpm": 8125.0,
+   "duty": 0.7783,
+   "thrust_n": 4.5323,
+   "torque_nm": 0.0614,
+   "p_shaft": 52.2126,
+   "i_motor": 6.0972,
+   "v_motor": 10.1015,
+   "i_in": 4.7756,
+   "v_in": 13.0567,
+   "p_in": 62.3537,
+   "p_source": 63.0379,
+   "p_cu": 5.6135,
+   "p_noload": 3.7641,
+   "p_esc": 0.7635,
+   "p_lead": 0.6842,
+   "eta_motor": 0.8477,
+   "eta_drive": 0.8374
+  },
+  "design": {
+   "rpm": 8125.0,
+   "duty": 0.7947,
+   "thrust_n": 5.1437,
+   "torque_nm": 0.0659,
+   "p_shaft": 56.1043,
+   "i_motor": 6.5211,
+   "v_motor": 10.3009,
+   "i_in": 5.2125,
+   "v_in": 13.0436,
+   "p_in": 67.9894,
+   "p_source": 68.8045,
+   "p_cu": 7.3044,
+   "p_noload": 3.7641,
+   "p_esc": 0.8166,
+   "p_lead": 0.8151,
+   "eta_motor": 0.8352,
+   "eta_drive": 0.8252
+  },
+  "low": {
+   "rpm": 1500.0,
+   "duty": 0.1354,
+   "thrust_n": 0.1215,
+   "torque_nm": 0.0017,
+   "p_shaft": 0.2693,
+   "i_motor": 0.5689,
+   "v_motor": 1.7808,
+   "i_in": 0.107,
+   "v_in": 13.1968,
+   "p_in": 1.4122,
+   "p_source": 1.4126,
+   "p_cu": 0.0489,
+   "p_noload": 0.6949,
+   "p_esc": 0.3991,
+   "p_lead": 0.0003,
+   "eta_motor": 0.2658,
+   "eta_drive": 0.1907
+  },
+  "max_rpm_nominal": 9865.0,
+  "max_rpm_design": 9863.0
+ }
+}
