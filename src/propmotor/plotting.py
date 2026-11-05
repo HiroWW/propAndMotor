@@ -11,6 +11,7 @@ Style rules (kept consistent across all figures):
 from __future__ import annotations
 
 import math
+from pathlib import Path
 from typing import Sequence
 
 import matplotlib as mpl
@@ -43,12 +44,61 @@ def source_color(ds) -> str:
     return {"measured": C_MEASURED, "theory": C_THEORY, "envelope": C_DESIGN}.get(ds.kind, INK2)
 
 
+DOC_FONTS = ["Futura PT", "FTT-Cezanne", "Noto Sans CJK JP", "DejaVu Sans"]
+_FONTS_REGISTERED = False
+
+
+def register_local_fonts() -> None:
+    """Register fonts copied to ~/.local/share/fonts (e.g. the document fonts) with matplotlib.
+
+    The fonts themselves are not part of the repository; if absent, matplotlib falls back
+    to Noto Sans CJK / DejaVu Sans.
+    """
+    global _FONTS_REGISTERED
+    if _FONTS_REGISTERED:
+        return
+    from matplotlib import font_manager
+
+    d = Path.home() / ".local" / "share" / "fonts"
+    if d.exists():
+        for f in list(d.rglob("*.ttf")) + list(d.rglob("*.otf")) + list(d.rglob("*.TTF")):
+            try:
+                font_manager.fontManager.addfont(str(f))
+            except Exception:  # noqa: BLE001 - a broken font file must not stop plotting
+                pass
+        # alias without "-": mathtext parses family names as fontconfig patterns
+        from dataclasses import replace as _replace
+
+        font_manager.fontManager.ttflist += [_replace(fe, name="CezanneJP") for fe in font_manager.fontManager.ttflist
+                                             if fe.name == "FTT-Cezanne"]
+    _FONTS_REGISTERED = True
+
+
+def _finish(fig):
+    """Texts mixing mathtext and Japanese render their non-math part with the text's own first font;
+    give those texts the CJK body font so no glyph is missing."""
+    for t in fig.findobj(mpl.text.Text):
+        txt = t.get_text()
+        if "$" in txt and any(ord(ch) > 0x2E80 for ch in txt):
+            t.set_fontfamily(["CezanneJP"])
+    return fig
+
+
 def use_style() -> None:
+    register_local_fonts()
     mpl.rcParams.update({
-        "font.family": ["Noto Sans CJK JP", "DejaVu Sans"],
+        "font.family": DOC_FONTS,
+        # mathtext does not fall back through font.family: use the CJK-capable body font for
+        # the text parts of mixed labels such as "推力係数 $C_T$".
+        "mathtext.fontset": "custom",
+        "mathtext.default": "rm",
+        "mathtext.rm": "CezanneJP",
+        "mathtext.it": "CezanneJP",
+        "mathtext.bf": "CezanneJP",
+        "mathtext.sf": "CezanneJP",
         "font.size": 9.5,
         "axes.titlesize": 10.5,
-        "axes.titleweight": "bold",
+        "axes.titleweight": "normal",
         "axes.titlelocation": "left",
         "axes.labelsize": 9.5,
         "axes.labelcolor": INK2,
@@ -131,7 +181,7 @@ def fig_prop_coefficients(datasets, rpm_limit: float, rpm_max_plot: float = 9_00
         _vline(ax, rpm_limit, f"APC上限\n{rpm_limit:,.0f}", ha="left" if ax is axs[2] else "right")
     axs[0].legend(loc="lower right")
     axs[1].text(0.02, 0.04, "点線 = 実測範囲外の外挿 / 点 = 実測値", transform=axs[1].transAxes, fontsize=8, color=INK2)
-    return fig
+    return _finish(fig)
 
 
 def fig_prop_dimensional(datasets, rho: float, rpm_limit: float, rpm_max_plot: float = 9000):
@@ -159,7 +209,7 @@ def fig_prop_dimensional(datasets, rho: float, rpm_limit: float, rpm_max_plot: f
         ax.set_ylim(bottom=0)
     fig.suptitle(f"ρ = {rho:.3f} kg/m³、縦線は APC 上限 {rpm_limit:,.0f} rpm", x=0.01, ha="left", fontsize=8.5,
                  color=INK2, fontweight="normal")
-    return fig
+    return _finish(fig)
 
 
 # ---------------------------------------------------------------------------
@@ -211,7 +261,7 @@ def fig_matching(dt_list, duties: Sequence[float] = (0.2, 0.4, 0.6, 0.8, 1.0), r
            title=title or f"運転点 = モータ特性線 × プロペラ負荷線  ({m.name}, 電源 {s.v_open:.1f} V)")
     ax.plot([], [], color=GREY_RAMP[2], lw=1.1, label="モータ特性線 (duty 一定)")
     ax.legend(loc="center left", bbox_to_anchor=(0.0, 0.62))
-    return fig
+    return _finish(fig)
 
 
 def fig_kv_tradeoff(frame, esc, spec, prop_nominal, prop_design, kv=None):
@@ -247,7 +297,7 @@ def fig_kv_tradeoff(frame, esc, spec, prop_nominal, prop_design, kv=None):
         _vline(ax, frame.kv, f"基準 Kv{frame.kv:.0f}", y=0.15, ha="left")
     fig.suptitle(f"同じフレーム({frame.name})を巻き替えて Kv だけ変えた場合 — {spec.rpm_max:,.0f} rpm 時、duty {spec.duty_target:.0%} 設計",
                  x=0.01, ha="left", fontsize=8.5, color=INK2, fontweight="normal")
-    return fig
+    return _finish(fig)
 
 
 def fig_efficiency_map(dt, rpm_max_plot: float = 10_000, rpm_limit: float | None = None):
@@ -285,7 +335,7 @@ def fig_efficiency_map(dt, rpm_max_plot: float = 10_000, rpm_limit: float | None
            title=f"モータ効率マップ ({m.name})")
     ax.legend(loc="upper left")
     ax.grid(False)
-    return fig
+    return _finish(fig)
 
 
 # ---------------------------------------------------------------------------
@@ -340,7 +390,7 @@ def fig_kv_v_map(kvmap, spec, candidates=None, esc_lines=None, psu_vmax: float =
     ax.set(xlim=(kvmap.kv[0], kvmap.kv[-1]), ylim=(kvmap.v[0], kvmap.v[-1]), xlabel="モータ Kv [rpm/V]",
            ylabel="電源設定電圧 [V]", title=title or "選定マップ: Kv × 電源電圧")
     ax.grid(color=GRID, lw=0.5)
-    return fig
+    return _finish(fig)
 
 
 # ---------------------------------------------------------------------------
@@ -371,7 +421,7 @@ def fig_throttle_curve(dt_list, rpm_limit: float | None = None, n: int = 60):
     m, s = dt_list[0].motor, dt_list[0].source
     fig.suptitle(f"{m.name} / 電源 {s.v_open:.1f} V", x=0.01, ha="left", fontsize=8.5, color=INK2,
                  fontweight="normal")
-    return fig
+    return _finish(fig)
 
 
 def fig_power_breakdown(rows):
@@ -402,7 +452,7 @@ def fig_power_breakdown(rows):
     ax.set_title("最大回転時の電力の行き先", pad=28)
     ax.grid(axis="y", visible=False)
     ax.set_xlim(0, max(sum(op[k] for k, _, _ in keys) for _, op in rows) * 1.25)
-    return fig
+    return _finish(fig)
 
 
 def fig_measurement_uncertainty(prop, stand, rho: float, rpm_min: float = 1000, rpm_max: float = 8125):
@@ -433,7 +483,7 @@ def fig_measurement_uncertainty(prop, stand, rho: float, rpm_min: float = 1000, 
         _dot(axs[1], rpm[k], uq[k] * 100, SERIES[1], size=5)
     fig.suptitle(f"{stand.name}: 推力/トルクの公差 = 0.5 % ∓ 0.001 (kgf, N·m)、回転数 0.2 %、密度 1 % を仮定",
                  x=0.01, ha="left", fontsize=8.5, color=INK2, fontweight="normal")
-    return fig
+    return _finish(fig)
 
 
 def fig_candidate_dots(evals, metrics):
@@ -463,7 +513,7 @@ def fig_candidate_dots(evals, metrics):
         ax.grid(axis="y", visible=False)
     np.atleast_1d(axs)[0].set_yticks(y, [e.motor.name for e in evals])
     np.atleast_1d(axs)[0].set_ylim(-0.6, len(evals) - 0.2)
-    return fig
+    return _finish(fig)
 
 
 # ---------------------------------------------------------------------------
@@ -494,7 +544,7 @@ def fig_regen(prop, rho: float, j_kgm2: float, v0: float, v_limit: float, fracti
                ylabel="[rpm/s]", ylim=(0, None))
     fig.suptitle(f"回転体の慣性モーメント J = {j_kgm2 * 1e7:.0f} g·cm²、運動エネルギー {e:.1f} J ({rpm_from:,.0f} rpm)",
                  x=0.01, ha="left", fontsize=8.5, color=INK2, fontweight="normal")
-    return fig
+    return _finish(fig)
 
 
 def fig_validation(tests, props, rho: float = 1.2):
@@ -523,7 +573,7 @@ def fig_validation(tests, props, rho: float = 1.2):
     fig.legend(h, l, loc="outside lower center", ncol=2)
     fig.suptitle(f"APC 8×3.8SF を使ったメーカー試験値との比較 (ρ = {rho} kg/m³ を仮定、灰帯 ±5 %)", x=0.01, ha="left",
                  fontsize=8.5, color=INK2, fontweight="normal")
-    return fig
+    return _finish(fig)
 
 
 def fig_compatibility(matrix, motors, escs):
@@ -553,7 +603,7 @@ def fig_compatibility(matrix, motors, escs):
     for sp in ax.spines.values():
         sp.set_visible(False)
     ax.set_title("モータ × ESC の適合 (推奨電圧で評価。NG=必須条件違反、注意=推奨条件違反)")
-    return fig
+    return _finish(fig)
 
 
 
@@ -584,4 +634,4 @@ def fig_regen_transient(results, v_limit: float, ramp_sweep=None, title_note: st
                 ylabel="[V]", ylim=(0, None))
     if title_note:
         fig.suptitle(title_note, x=0.01, ha="left", fontsize=8.5, color=INK2, fontweight="normal")
-    return fig
+    return _finish(fig)

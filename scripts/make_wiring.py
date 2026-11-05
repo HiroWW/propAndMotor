@@ -74,6 +74,9 @@ def label(ax, x, y, text, ha="center", va="bottom", color=INK2, size=7.0):
 
 
 def main() -> None:
+    from propmotor.plotting import register_local_fonts
+
+    register_local_fonts()
     plt.rcParams["font.family"] = FONT
     fig, ax = plt.subplots(figsize=(10.5, 6.6))
     ax.set_xlim(0, 105)
