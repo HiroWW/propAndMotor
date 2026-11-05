@@ -18,10 +18,24 @@ PIP_USER=0 .venv/bin/pip install -e ".[dev,notebook]"   # PIP_USER=0: ~/.pip/pip
 .venv/bin/pytest
 ```
 
+## Fonts
+
+The documents and figures use the same fonts as the weekly-report template
+(Futura PT, FTT-Cezanne, FTT-TsukuOldGothic). They are commercial fonts and are **not** in this
+repository; copy them locally, e.g. from the Windows user font folder:
+
+```bash
+mkdir -p ~/.local/share/fonts/windows
+cp /mnt/c/Users/$USER/AppData/Local/Microsoft/Windows/Fonts/{TT_Cezanne-*.ttf,FuturaPT-*.otf,TT_TsukuOldGothic-*.ttf} ~/.local/share/fonts/windows/
+```
+
+Without them typst and matplotlib fall back to other fonts.
+
 ## Regenerate the document
 
 ```bash
 .venv/bin/python scripts/make_figures.py   # figures -> docs/figures, numbers -> docs/generated/*.json
+.venv/bin/python scripts/make_wiring.py    # wiring diagram (photo collage) -> docs/figures/wiring.png
 typst compile docs/main.typ
 typst compile docs/safety.typ
 ```
