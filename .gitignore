@@ -5,3 +5,4 @@ __pycache__/
 .ipynb_checkpoints/
 docs/figures/*.png
 !docs/figures/wiring.png
+!docs/figures/estop_wiring.png
