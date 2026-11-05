@@ -1,10 +1,13 @@
 # Candidate ESCs (collected 2026-11). All accept standard servo PWM (the 1585 outputs 50 Hz, 1000-2000 us).
 # cells_min / cells: LiPo cell range; v_min = 3.0 V * cells_min, v_max = 4.2 V * cells_max.
+# jp_available: confirmed purchasable in Japan. needs_soldering: bare board (excluded by default).
 # regen_control: can active braking / active freewheeling (damped light, complementary PWM) be turned OFF?
 #   matters with a lab supply that cannot sink current (PWR401L).
 
 [[esc]]
 label = "Hobbywing Skywalker 20A V2"
+jp_available = true
+jp_shop = "Amazon.co.jp"
 manufacturer = "Hobbywing"
 model = "Skywalker 20A V2"
 cells_min = 2
@@ -112,6 +115,7 @@ notes = "Do NOT reflash to Bluejay (DShot only). 24 kHz fixed PWM."
 
 [[esc]]
 label = "Holybro Tekko32 F4 45A (AM32)"
+needs_soldering = true
 manufacturer = "Holybro"
 model = "Tekko32 F4 45A AM32"
 cells_min = 2

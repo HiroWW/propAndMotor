@@ -30,10 +30,13 @@ def _cells_max(cells: str | None) -> int | None:
         return None
 
 
-def load_motors(path: str | Path | None = None) -> list[Motor]:
+def load_motors(path: str | Path | None = None, jp_only: bool = False) -> list[Motor]:
+    """jp_only: keep only entries confirmed purchasable in Japan."""
     data = tomllib.loads(Path(path or _default("motors.toml")).read_text())
     out = []
     for d in data.get("motor", []):
+        if jp_only and not d.get("jp_available", False):
+            continue
         if d.get("kv") is None or d.get("r_ohm") is None or d.get("i0_a") is None:
             continue  # cannot be modelled without the three basic constants
         cmax = _cells_max(d.get("cells"))
@@ -50,10 +53,15 @@ def load_motors(path: str | Path | None = None) -> list[Motor]:
     return out
 
 
-def load_escs(path: str | Path | None = None) -> list[ESC]:
+def load_escs(path: str | Path | None = None, jp_only: bool = False, allow_soldering: bool = False) -> list[ESC]:
+    """jp_only: keep only entries confirmed purchasable in Japan; bare boards are skipped unless allowed."""
     data = tomllib.loads(Path(path or _default("escs.toml")).read_text())
     out = []
     for d in data.get("esc", []):
+        if jp_only and not d.get("jp_available", False):
+            continue
+        if d.get("needs_soldering", False) and not allow_soldering:
+            continue
         cmin = _cells_max(str(d.get("cells_min"))) if d.get("cells_min") else None
         cmax = _cells_max(d.get("cells"))
         v_min = d.get("v_min") or (cmin * 3.0 if cmin else 5.0)

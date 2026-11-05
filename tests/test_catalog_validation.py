@@ -8,17 +8,23 @@ from propmotor.validation import load_tests, predict
 
 
 def test_catalogs_load():
-    motors, escs = load_motors(), load_escs()
+    motors, escs = load_motors(), load_escs(allow_soldering=True)
     assert len(motors) == 11
     assert len(escs) == 7
     assert all(e.pwm_input for e in escs)
+    assert len(load_escs()) == 6  # bare boards excluded by default
+
+
+def test_jp_filter():
+    assert all(m.meta.get("jp_available") for m in load_motors(jp_only=True))
+    assert all(e.meta.get("jp_available") for e in load_escs(jp_only=True))
 
 
 def test_every_candidate_has_a_feasible_esc():
     spec = Spec(rho=1.2)
     uiuc, design = pm.apc_8x3_8sf_measured(), pm.apc_8x3_8sf_design()
     for m in load_motors():
-        ev = best_esc(m, load_escs(), spec, uiuc, design)
+        ev = best_esc(m, load_escs(allow_soldering=True), spec, uiuc, design)
         assert ev.feasible, ev.table()
 
 

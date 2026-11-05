@@ -1,6 +1,7 @@
 # Candidate motors for the APC 8x3.8SF static test (collected 2026-11, nominal datasheet values).
 # r_ohm: winding resistance as published (line-to-line unless noted). i0_a at i0_ref_v.
 # i_max_a: the manufacturer's max current; NOTE the duration (often 30-180 s, i.e. not truly continuous).
+# jp_available: confirmed purchasable in Japan (Amazon.co.jp / Japanese official store / Japanese RC shop).
 # Values are nominal: measure Kv, R (4-wire, line-to-line) and I0 on the stand after purchase.
 
 [[motor]]
@@ -75,6 +76,8 @@ notes = "Manufacturer test with APC 8x3.8-SF @ 11.1 V: 8279 rpm, 6.47 A, 71.8 W,
 
 [[motor]]
 label = "SunnySky X2216-880"
+jp_available = true
+jp_shop = "Amazon.co.jp"
 manufacturer = "SunnySky"
 model = "X2216-III KV880"
 kv = 880
@@ -98,6 +101,8 @@ notes = "Official CN site 30 A/440 W vs US distributor 32 A/450 W."
 
 [[motor]]
 label = "AXI 2212/26 V3 (920)"
+jp_available = true
+jp_shop = "リトルベランカ"
 manufacturer = "AXI (Model Motors)"
 model = "2212/26 GOLD LINE V3"
 kv = 920
@@ -168,6 +173,8 @@ notes = "APC 8038 recommended. Test @14.8 V: 7629 rpm 4.0 A 59.2 W 400 g; 8440 r
 
 [[motor]]
 label = "Hacker A20-30M EVO (980)"
+jp_available = true
+jp_shop = "ホビーバンク"
 manufacturer = "Hacker"
 model = "A20-30M EVO"
 kv = 980
@@ -210,6 +217,8 @@ notes = ""
 
 [[motor]]
 label = "T-Motor AT2312-1150"
+jp_available = true
+jp_shop = "T-Motor 公式通販"
 manufacturer = "T-Motor"
 model = "AT2312 Long Shaft KV1150"
 kv = 1150
