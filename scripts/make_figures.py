@@ -138,10 +138,10 @@ def main() -> None:
     dt_ref = pm.Drivetrain(prop=uiuc, motor=ref, esc=ref_ev.esc,
                            source=pm.DCSource("PSU", ref_ev.v_set, spec.r_leads, 10.0), rho=rho)
     d0 = float(pm.required_duty(dt_ref, lim))
-    v_clamp = round(ref_ev.v_set + 1.5, 1)
+    v_clamp = float(math.ceil(ref_ev.v_set + 2.0))  # maxon DSR 70/30: threshold in 1 V steps
     prots = [BusProtection("対策なし (ESC 内蔵 330 µF)"),
-             BusProtection("+ コンデンサ 4700 µF", c_bus_f=330e-6 + 4700e-6),
-             BusProtection(f"+ 電子負荷 CV クランプ {v_clamp} V", v_clamp=v_clamp),
+             BusProtection("+ 電解コンデンサ 2×1000 µF", c_bus_f=330e-6 + 2000e-6),
+             BusProtection(f"+ maxon DSR 70/30 ({v_clamp:.0f} V, 8800 µF)", c_bus_f=330e-6 + 8800e-6, v_clamp=v_clamp),
              BusProtection("ESC のフリーホイール OFF", complementary_pwm=False)]
     res = [throttle_drop(dt_ref, j, pr, d0, 0.05, t_end=0.25) for pr in prots]
     ramps = np.array([0.0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 1.0])
@@ -152,13 +152,20 @@ def main() -> None:
     steps = {}
     for dd in (0.05, 0.10, 0.20, 0.40):
         steps[f"{dd:.2f}"] = r(throttle_drop(dt_ref, j, prots[0], d0, d0 - dd, t_end=0.3).v_peak, 2)
+    extra = {
+        "+ コンデンサ 4700 µF": BusProtection("x", c_bus_f=330e-6 + 4700e-6),
+        "+ バイパス抵抗 10 Ω (常時 約1.3 A)": BusProtection("x", r_bleed_ohm=1 / (1 / 35.0 + 1 / 10.0)),
+        "+ 2×1000 µF + バイパス抵抗 10 Ω": BusProtection("x", c_bus_f=330e-6 + 2000e-6, r_bleed_ohm=1 / (1 / 35.0 + 1 / 10.0)),
+    }
+    extra_peaks = {k: r(throttle_drop(dt_ref, j, pr, d0, 0.05, t_end=0.25).v_peak, 1) for k, pr in extra.items()}
     coast = throttle_drop(dt_ref, j, prots[0], d0, 0.0, t_end=0.5, zero_throttle="coast")
     brake = throttle_drop(dt_ref, j, prots[0], d0, 0.0, t_end=0.5, zero_throttle="brake")
     values["safety"] = {
         "v_set": ref_ev.v_set, "esc_vmax": ref_ev.esc.v_max, "d0": r(d0), "v_clamp": v_clamp,
-        "peaks": {pr.name: r(x.v_peak, 1) for pr, x in zip(prots, res)},
+        "peaks": {**{pr.name: r(x.v_peak, 1) for pr, x in zip(prots, res)}, **extra_peaks},
         "peak_list": [r(x.v_peak, 1) for x in res],
-        "clamp_i_max": r(res[2].i_clamp.max(), 2), "i_motor_min": r(res[0].i_motor.min(), 1),
+        "clamp_i_max": r(res[2].i_clamp.max(), 2),
+        "clamp_energy_j": r(float(np.trapezoid(res[2].i_clamp * res[2].v_bus, res[2].t)), 2), "i_motor_min": r(res[0].i_motor.min(), 1),
         "ramp_s": ramps.tolist(), "ramp_vpeak": [r(x, 1) for x in vpk], "step_vpeak": steps,
         "coast_vpeak": r(coast.v_peak, 2), "brake_vpeak": r(brake.v_peak, 2), "brake_i_min": r(brake.i_motor.min(), 1),
         "i_in_max": r(ref_ev.design["i_in"], 2),
