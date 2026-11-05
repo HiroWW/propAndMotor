@@ -23,6 +23,7 @@ from propmotor import plotting as P  # noqa: E402
 from propmotor.catalog import load_escs, load_motors  # noqa: E402
 from propmotor.regen import kinetic_energy, prop_inertia_estimate, rotor_inertia_estimate  # noqa: E402
 from propmotor.selection import TestSpec, best_esc, compatibility, evaluate, kv_voltage_map  # noqa: E402
+from propmotor.transient import BusProtection, throttle_drop  # noqa: E402
 from propmotor.validation import load_tests, predict  # noqa: E402
 from propmotor.stand import TYTO_1585  # noqa: E402
 
@@ -131,6 +132,36 @@ def main() -> None:
     save(P.fig_regen(uiuc, rho, j, v0=ref_ev.v_set, v_limit=ref_ev.esc.v_max, rpm_from=lim), "regen")
     values["regen"] = {"j_kgm2": j, "j_gcm2": r(j * 1e7, 0), "energy_lim_j": r(kinetic_energy(j, lim), 2),
                        "prop_mass_g": PROP_MASS_KG * 1000}
+
+    # ---- safety: regeneration transients (docs/safety.typ) -------------------------
+    dt_ref = pm.Drivetrain(prop=uiuc, motor=ref, esc=ref_ev.esc,
+                           source=pm.DCSource("PSU", ref_ev.v_set, spec.r_leads, 10.0), rho=rho)
+    d0 = float(pm.required_duty(dt_ref, lim))
+    v_clamp = round(ref_ev.v_set + 1.5, 1)
+    prots = [BusProtection("対策なし (ESC 内蔵 330 µF)"),
+             BusProtection("+ コンデンサ 4700 µF", c_bus_f=330e-6 + 4700e-6),
+             BusProtection(f"+ 電子負荷 CV クランプ {v_clamp} V", v_clamp=v_clamp),
+             BusProtection("ESC のフリーホイール OFF", complementary_pwm=False)]
+    res = [throttle_drop(dt_ref, j, pr, d0, 0.05, t_end=0.25) for pr in prots]
+    ramps = np.array([0.0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 1.0])
+    vpk = [throttle_drop(dt_ref, j, prots[0], d0, 0.05, t_end=r_ + 0.3, ramp_s=r_).v_peak for r_ in ramps]
+    save(P.fig_regen_transient(res, ref_ev.esc.v_max, (ramps, vpk),
+                               title_note=f"{ref.name} / {ref_ev.esc.name} / 電源 {ref_ev.v_set:.1f} V: "
+                                          f"{lim:,.0f} rpm (duty {d0:.0%}) から duty 5 % へ"), "regen_transient")
+    steps = {}
+    for dd in (0.05, 0.10, 0.20, 0.40):
+        steps[f"{dd:.2f}"] = r(throttle_drop(dt_ref, j, prots[0], d0, d0 - dd, t_end=0.3).v_peak, 2)
+    coast = throttle_drop(dt_ref, j, prots[0], d0, 0.0, t_end=0.5, zero_throttle="coast")
+    brake = throttle_drop(dt_ref, j, prots[0], d0, 0.0, t_end=0.5, zero_throttle="brake")
+    values["safety"] = {
+        "v_set": ref_ev.v_set, "esc_vmax": ref_ev.esc.v_max, "d0": r(d0), "v_clamp": v_clamp,
+        "peaks": {pr.name: r(x.v_peak, 1) for pr, x in zip(prots, res)},
+        "peak_list": [r(x.v_peak, 1) for x in res],
+        "clamp_i_max": r(res[2].i_clamp.max(), 2), "i_motor_min": r(res[0].i_motor.min(), 1),
+        "ramp_s": ramps.tolist(), "ramp_vpeak": [r(x, 1) for x in vpk], "step_vpeak": steps,
+        "coast_vpeak": r(coast.v_peak, 2), "brake_vpeak": r(brake.v_peak, 2), "brake_i_min": r(brake.i_motor.min(), 1),
+        "i_in_max": r(ref_ev.design["i_in"], 2),
+    }
 
     # ---- numbers for the document -------------------------------------------------
     def op_summary(op):

@@ -54,11 +54,13 @@ class TransientResult:
 
 
 def throttle_drop(dt: Drivetrain, j_kgm2: float, prot: BusProtection, d_from: float, d_to: float,
-                  t_end: float = 0.4, ramp_s: float = 0.0, zero_throttle: str = "coast") -> TransientResult:
+                  t_end: float = 0.4, ramp_s: float = 0.0, zero_throttle: str = "coast",
+                  source_off: bool = False) -> TransientResult:
     """Start at steady state with duty d_from, then change duty to d_to (linearly over ramp_s).
 
     zero_throttle: what the ESC does at duty 0 — "coast" (all switches off, hobby-ESC default)
     or "brake" (low sides on = motor shorted; energy burnt in the windings, not returned to the bus).
+    source_off: the supply output is switched off at t=0 (emergency stop on the DC side).
     """
     m, e, s = dt.motor, dt.esc, dt.source
     r_tot = m.resistance(dt.winding_temp_c) + e.r_on_ohm
@@ -79,7 +81,7 @@ def throttle_drop(dt: Drivetrain, j_kgm2: float, prot: BusProtection, d_from: fl
         if not prot.complementary_pwm or (d <= 0.0 and zero_throttle == "coast"):
             i_m = max(i_m, 0.0)
         i_esc = d * i_m + e.i_q_a
-        i_psu = min(max((s.v_open - v) / s.r_series, 0.0), s.i_limit or 1e9)
+        i_psu = 0.0 if (source_off and t > 0) else min(max((s.v_open - v) / s.r_series, 0.0), s.i_limit or 1e9)
         i_bleed = v / prot.r_bleed_ohm if prot.r_bleed_ohm else 0.0
         i_cl = 0.0
         if prot.v_clamp is not None:

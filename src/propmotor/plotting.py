@@ -579,6 +579,7 @@ def fig_regen_transient(results, v_limit: float, ramp_sweep=None, title_note: st
         ramp, vp = ramp_sweep
         ax2.plot(np.asarray(ramp) * 1000, vp, color=SERIES[0])
         ax2.axhline(v_limit, color=STATUS["critical"], lw=1.1)
+        ax2.text(np.asarray(ramp)[-1] * 1000, v_limit, "ESC 定格上限 ", ha="right", va="bottom", fontsize=8, color=INK)
         ax2.set(title="絞る速さと母線電圧の最大値 (対策なし)", xlabel="スロットルを下げきるまでの時間 [ms]",
                 ylabel="[V]", ylim=(0, None))
     if title_note:
