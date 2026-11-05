@@ -1,510 +1,378 @@
-// APC 8x3.8SF 静止推力試験のための 電源・モータ・ESC 選定 — 物理と計算
-// 図と数値は scripts/make_figures.py が生成する (docs/figures, docs/generated)。
+#import "template.typ": *
 
 #let val = json("generated/values.json")
 #let cands = json("generated/candidates.json")
 #let ref = val.reference
+#let vs = val.validation_summary
+#let sp = val.spec
 
-#let f(x, d: 2) = if x == none { "—" } else { str(calc.round(x, digits: d)) }
-#let pct(x, d: 0) = if x == none { "—" } else { str(calc.round(x * 100, digits: d)) + " %" }
-
-#set document(title: "APC 8×3.8SF 静止推力試験の電源・モータ・ESC選定")
-#set page(paper: "a4", margin: (x: 20mm, y: 20mm), numbering: "1")
-#set text(lang: "ja", font: ("Noto Serif CJK JP",), size: 10pt)
-#set par(justify: true, leading: 0.8em, first-line-indent: 0em, spacing: 1.1em)
-#set heading(numbering: "1.1")
-#show heading: set text(font: ("Noto Sans CJK JP",), weight: "bold")
-#show heading.where(level: 1): it => { pagebreak(weak: true); v(0.4em); it; v(0.3em) }
-#set math.equation(numbering: "(1)")
-#show figure.caption: set text(size: 9pt)
-#set figure(gap: 0.8em)
-#show figure: set block(spacing: 1.6em)
-#show raw: set text(font: ("DejaVu Sans Mono",), size: 8.5pt)
-
-#let note(body) = block(fill: rgb("#f4f3ef"), inset: 9pt, radius: 3pt, width: 100%, body)
-#let key(body) = block(stroke: (left: 2.5pt + rgb("#2a78d6")), inset: (left: 10pt, y: 6pt), width: 100%, body)
-#let fig(path, cap, w: 100%) = figure(image(path, width: w), caption: cap)
-
-#align(center)[
-  #text(size: 17pt, font: ("Noto Sans CJK JP",), weight: "bold")[APC 8×3.8SF 静止推力試験のための\ 電源電圧・モータ・ESC の選定]
-  #v(0.3em)
-  #text(size: 10.5pt)[— どういう物理で決まるのか、と その計算 —]
-  #v(0.6em)
-  #text(size: 9pt, fill: rgb("#52514e"))[数値・図は `scripts/make_figures.py` で生成（このPDFの数値はコードと同期）]
-]
-
-#v(1em)
-#outline(depth: 2, indent: 1.5em)
-
-= この文書の目的と前提
-
-APC 8×3.8SF プロペラの静止（ホバ）状態の特性 — 推力 $T$・トルク $Q$・軸動力 $P$ を回転数の全域で — を
-推力スタンドで測定したい。そのために、*電源電圧*、*モータ*、*ESC* をどう決めればよいかを、
-物理から積み上げて整理し、計算で選定する。
-
-#table(
-  columns: (auto, 1fr),
-  stroke: none,
-  inset: (x: 6pt, y: 4pt),
-  table.hline(stroke: 0.6pt),
-  [*項目*], [*前提*],
-  table.hline(stroke: 0.4pt),
-  [プロペラ], [APC 8×3.8SF（Slow Flyer, 直径 $D$ = 8 in = 0.2032 m, 2枚翼）],
-  [試験範囲], [静止（前進速度 0）、回転数 0 〜 #f(val.rpm_limit, d: 0) rpm（APC の SF 上限 65,000/D）],
-  [電源], [安定化電源 菊水 PWR401L（0–40 V, 0–40 A, 400 W）],
-  [スタンド], [Tyto Robotics Series 1585（推力 ±5 kgf, トルク ±2 N·m, 50 V, 55 A）+ 光学式回転計],
-  [調達], [モータと ESC は新規購入],
-  [空気密度], [$rho$ = #f(val.rho, d: 3) kg/m³（20 °C, 101.3 kPa, 相対湿度 50 % を仮定。試験当日の値で再計算する）],
-  table.hline(stroke: 0.6pt),
+#show: report.with(
+  title: [APC 8×3.8SF 静止推力試験の駆動系選定],
+  subtitle: [電源電圧・モータ・ESC を物理から決める],
+  date: [2026.11.5],
 )
 
-== 「選定」とは何をすることか
+= 序論
 
-プロペラが決まると、各回転数で必要なトルクが決まる（負荷）。その負荷を、試験範囲の全域で、
-*どの部品の定格も超えずに、余裕をもって* 作り出せる「電源電圧 × モータ × ESC」の組を見つけるのが選定である。
-エネルギーと信号の流れは次の一本道になっている。
+本書の目的は、APC 8×3.8SF プロペラの静止状態における推力 $T$ とトルク $Q$ を、回転数 0 から APC の許容上限
+#fmt(val.rpm_limit, d: 0) rpm までの全域で測定するために、電源電圧・モータ・ESC を決めることである。
+測定には Tyto Robotics Series 1585 推力スタンドを用い、電源には菊水 PWR401L（0–40 V, 0–40 A, 400 W）を用いる。
+モータと ESC は国内で購入できる市販品から選ぶ。
+
+選定の筋道は次のとおりである。試験中のエネルギーは電源から ESC、モータを経てプロペラへ流れ、
+隣り合う要素は電力の保存と回路方程式で結ばれている。そこで、まずプロペラが各回転数で要求するトルクを求め（@sec:prop）、
+次にそのトルクを生むためにモータが要求する電流と電圧を求め（@sec:motor）、さらにその電圧を作るために ESC が要求する
+duty と電源電圧を求める（@sec:esc）。こうして運転点が電源電圧・モータ定数・duty の関数として閉じた形で表せるので、
+各部品の定格と制御上の余裕を不等式として課せば、成立する組合せの範囲が選定基準として得られる（@sec:select）。
+回生と非常停止を含む安全設計は別冊「推力試験の安全設計」にまとめた。
 
 #figure(
-  {
-    let node(title, sub) = rect(radius: 3pt, inset: 7pt, stroke: 0.6pt + rgb("#898781"), width: 100%)[
-      #align(center)[#text(font: ("Noto Sans CJK JP",), weight: "bold", size: 9.5pt)[#title] \ #text(size: 8.5pt)[#sub]]
-    ]
-    let arr(t) = align(center + horizon)[#text(size: 8pt)[#t] \ #text(size: 14pt)[→]]
-    grid(
-      columns: (1fr, 0.62fr, 1fr, 0.62fr, 1fr, 0.62fr, 1fr),
-      align: center + horizon,
-      node[電源][$V_"set"$, 配線 $R_s$],
-      arr[$V_"in", I_"in"$],
-      node[ESC][duty $d$, $R_"on"$],
-      arr[$V_m, I_m$],
-      node[モータ][$K_v, R, I_0$],
-      arr[$Q, omega$],
-      node[プロペラ][$C_T, C_P$],
-    )
-  },
-  caption: [試験系のエネルギーの流れ。各矢印の上が、その境界で受け渡される量。スタンドは $V_"in", I_"in"$（電源側）、$T, Q, omega$ を測る。],
+  table(
+    columns: (22%, 1fr),
+    toprule,
+    [項目], [条件],
+    midrule,
+    [プロペラ], [APC 8×3.8SF（直径 $D$ = 0.2032 m、2 枚翼）],
+    [試験範囲], [前進速度 0、回転数 0–#fmt(val.rpm_limit, d: 0) rpm],
+    [電源], [菊水 PWR401L],
+    [推力スタンド], [Tyto Robotics Series 1585（推力 ±5 kgf、トルク ±2 N·m、50 V、55 A）、光学式回転計],
+    [空気密度], [$rho$ = #fmt(val.rho, d: 3) kg/m³（20 °C、101.3 kPa、相対湿度 50 %。試験当日の値で計算し直す）],
+    botrule,
+  ),
+  caption: [前提条件],
 )
 
-この文書の構成は、負荷側（@sec:prop プロペラ）→ 変換器（@sec:motor モータ, @sec:esc ESC）→ 供給側（@sec:source 電源）の順に物理を整理し、
-@sec:select でそれらを連立させて選定する。@sec:test は試験計画への示唆である。
+= プロペラが要求する負荷 <sec:prop>
 
-#key[
-  *結論の先取り:* プロペラが要求する最大点（約 8,100 rpm, トルク 0.06–0.07 N·m, 軸動力 50–56 W）は
-  モータの選び方に関係なく決まっている。モータの *大きさ*（モータ定数 $K_m$）が発熱を決め、*Kv* は電圧と電流の配分を決めるだけで、
-  電源電圧は連続に選べる。したがって選定の中心は「Kv–電圧平面の成立領域」を描き、そこに候補を載せることになる。
-]
+== 運動量理論と理想動力
 
-= プロペラ: 負荷はどう決まるか <sec:prop>
+静止したロータを、面積 $A = pi D^2 \/ 4$ の円板が空気に一様な圧力差を与えるものとみなす（アクチュエータ・ディスク）。
+円板を通過する流速を $v_i$、十分下流の後流速度を $w$ とすると、質量流量は $dot(m) = rho A v_i$ である。
+円板と後流を囲む検査体積に運動量保存則を適用すると推力は $T = dot(m) w$、エネルギー保存則を適用すると円板が空気にする仕事率は
+$P = dot(m) w^2 \/ 2$ となる。一方、円板上の仕事率は推力と通過速度の積 $T v_i$ でもあるから、$dot(m) w v_i = dot(m) w^2 \/ 2$ より
+$w = 2 v_i$ を得る。これらを組み合わせると
 
-== 運動量理論とフィギュア・オブ・メリット
+$ T = 2 rho A v_i^2, quad P_"ideal" = T v_i = T^(3\/2) / sqrt(2 rho A) $ <eq:momentum>
 
-静止状態のロータを、空気に圧力差を与える薄い円板（アクチュエータ・ディスク）とみなす。円板面積 $A = pi D^2 \/ 4$、
-円板を通る誘導速度を $v_i$ とすると、質量流量は $dot(m) = rho A v_i$、後流の速度は $2 v_i$ になる（ベルヌーイと運動量保存から）。
-
-$ T = dot(m) dot 2 v_i = 2 rho A v_i^2, quad P_"ideal" = T v_i = T^(3\/2) / sqrt(2 rho A) $ <eq:momentum>
-
-これは損失のない理想ロータが推力 $T$ を出すのに必要な最小動力である。実際の動力 $P$ との比が
-*フィギュア・オブ・メリット* FM で、静止ロータの効率を表す。
+となる。@eq:momentum は損失のない理想ロータが推力 $T$ を出すのに必要な最小の動力であり、実際の軸動力 $P$ はこれより大きい。
+その比
 
 $ "FM" = P_"ideal" / P $ <eq:fm>
 
-本プロペラでは $A$ = #f(val.disk_area, d: 4) m²。上限回転数で推力 #f(val.uiuc.thrust_n) N（実測ベース）を出すときの理想動力は
-#f(val.p_ideal_lim, d: 1) W、実際の動力は #f(val.uiuc.power_w, d: 1) W なので FM ≈ #f(val.uiuc.fm_lim). 残りは翼の形状抗力・翼端損失・旋回流などである。
+をフィギュア・オブ・メリットと呼び、静止ロータの効率を表す。本プロペラでは $A$ = #fmt(val.disk_area, d: 4) m² であり、
+上限回転数における推力 #fmt(val.uiuc.thrust_n) N に対して $P_"ideal"$ = #fmt(val.p_ideal_lim, d: 1) W、実際の軸動力は
+#fmt(val.uiuc.power_w, d: 1) W であるから FM ≈ #fmt(val.uiuc.fm_lim) となる。残りは翼の形状抗力、翼端損失、旋回流によって失われる。
 
 == 無次元係数と相似則
 
-推力は $rho$, 回転数 $n$ [rev/s], 直径 $D$ と、レイノルズ数 Re・翼端マッハ数 M・前進率 $J = V\/(n D)$ で決まる。次元解析から
+推力は空気密度 $rho$、回転数 $n$ [rev/s]、直径 $D$、前進速度 $V$、粘性係数 $mu$、音速 $a$ で決まる。
+基本次元は質量・長さ・時間の 3 つであるから、バッキンガムの $Pi$ 定理により 7 変数の関係は 4 個の無次元数の関係に縮約され、
 
-$ T = C_T rho n^2 D^4, quad P = C_P rho n^3 D^5, quad Q = P / omega = C_P / (2 pi) rho n^2 D^5 $ <eq:coef>
+$ C_T eq.def T / (rho n^2 D^4) = f(J, "Re", M), quad C_P eq.def P / (rho n^3 D^5) = g(J, "Re", M) $ <eq:coef>
 
-と書け、$C_T, C_P$ は $(J, "Re", M)$ の関数である。静止試験では $J = 0$。翼端マッハ数は上限回転数でも
-#f(val.tip_mach_lim) 程度なので圧縮性は無視できる。残るのは *レイノルズ数（＝回転数）依存性* だけである。
-$C_T, C_P$ が一定なら $T, Q prop n^2$, $P prop n^3$、したがって $P prop T^(3\/2)$ となる。
-推力を 2 倍にするには回転数 $sqrt(2)$ 倍、動力 2.8 倍が要る。FM は無次元係数で書くと
+と書ける。ここで $J = V \/ (n D)$ は前進率、Re はレイノルズ数、$M$ はマッハ数である。静止試験では $J = 0$ であり、
+上限回転数でも翼端マッハ数は #fmt(val.tip_mach_lim) にとどまるから圧縮性は無視できる。したがって形状の決まったプロペラでは
+$C_T$ と $C_P$ はレイノルズ数、すなわち回転数だけの関数になる。トルクは $Q = P \/ (2 pi n)$ より
+
+$ T = C_T rho n^2 D^4, quad Q = C_P / (2 pi) rho n^2 D^5, quad P = C_P rho n^3 D^5 $ <eq:load>
+
+で与えられる。$C_T$ と $C_P$ の変化が小さい範囲では $T$ と $Q$ は $n^2$ に、$P$ は $n^3$ に比例するので、$P prop T^(3\/2)$ となり
+@eq:momentum と同じ次数を持つ。また @eq:momentum と @eq:coef から FM を係数で表すと
 
 $ "FM" = C_T^(3\/2) / (sqrt(pi \/ 2) thin C_P) $ <eq:fmcoef>
 
-== データ: APC 公表値と UIUC 実測値
+となる。
 
-使えるデータは 2 種類ある。
+== 係数のデータとその検証
 
-- *APC 公表値*（`PER3_8x38SF.dat`, v2022-0915）: APC 社が翼素理論・渦理論と翼型極曲線で計算した *理論値*。1,000–29,000 rpm。
-- *UIUC 実測値*（Propeller Data Site Vol. 1, `apcsf_8x3.8_static_2777rd`）: 風洞スタンドでの *実測*。#f(val.uiuc.rpm_range.at(0), d: 0)–#f(val.uiuc.rpm_range.at(1), d: 0) rpm。
+$C_T(n)$ と $C_P(n)$ の値として、APC 社が翼素理論と翼型極曲線から計算した公表値（`PER3_8x38SF.dat`）と、
+イリノイ大学の風洞スタンドで測定された値（UIUC Propeller Data Site Vol. 1、#fmt(val.uiuc.rpm_range.at(0), d: 0)–#fmt(val.uiuc.rpm_range.at(1), d: 0) rpm）が得られる。
+@fig:coef に両者を示す。7,000 rpm において APC の値は実測に比べ $C_T$ で
+#fmt((val.apc.ct_7000 / val.uiuc.ct_7000 - 1) * 100, d: 0) %、$C_P$ で #fmt((val.apc.cp_7000 / val.uiuc.cp_7000 - 1) * 100, d: 0) % 大きい。
+また実測の $C_T$ と $C_P$ は回転数とともに増加するが、理論値はほぼ一定である。翼弦長基準のレイノルズ数は $10^4$–$10^5$ の範囲にあり、
+この領域では翼型の揚抗比がレイノルズ数とともに大きく改善するので、実測の傾向はこれと整合する。
 
-#fig("figures/prop_coefficients.svg")[静止状態の $C_T$, $C_P$, FM。橙は APC の理論値、青は UIUC 実測（点が実測値、点線は範囲外の外挿: 上側は高回転側 6 点の直線当てはめ、下側は端の値で保持）。]
+#figure(image("figures/prop_coefficients.svg", width: 100%),
+  caption: [静止状態の $C_T$、$C_P$、FM。橙は APC 公表値、青は UIUC 実測値（点）。点線は測定範囲外で、高回転側は最上位 6 点の直線による外挿、低回転側は端の値を保持したもの。]) <fig:coef>
 
-#fig("figures/prop_dimensional.svg")[推力・トルク・軸動力（有次元）。点は APC 上限 #f(val.rpm_limit, d: 0) rpm での値。]
+どちらのデータが正しいかは、独立な第三者の測定と比べれば判定できる。Scorpion、Cobra、SunnySky の各社は同じ APC 8×3.8SF を
+自社モータで回した試験値を公表している。推力は @eq:load により回転数だけで決まるので、測定された回転数で推力を計算すれば
+プロペラモデルを直接検証できる。また全開運転では電源電流がモータ電流にほぼ等しいので、@sec:motor の
+モータモデルと組み合わせて電流を比べれば $C_P$ も検証できる。@fig:valid に結果を示す。UIUC 実測に基づくモデルは
+推力で #fmt(vs.uiuc_thrust.at(0) * 100, d: 1)–+#fmt(vs.uiuc_thrust.at(1) * 100, d: 1) %、電流で
+#fmt(vs.uiuc_current.at(0) * 100, d: 1)–+#fmt(vs.uiuc_current.at(1) * 100, d: 1) % の範囲でメーカー値と一致し、
+APC の値は推力を #fmt(vs.apc_thrust.at(0) * 100, d: 0)–#fmt(vs.apc_thrust.at(1) * 100, d: 0) % 過大に見積もる。
 
-二つは大きく食い違う。7,000 rpm で $C_T$ は APC #f(val.apc.ct_7000, d: 4) に対し実測 #f(val.uiuc.ct_7000, d: 4)（APC が約
-#f((val.apc.ct_7000 / val.uiuc.ct_7000 - 1) * 100, d: 0) % 大きい）、$C_P$ は #f(val.apc.cp_7000, d: 4) に対し #f(val.uiuc.cp_7000, d: 4)（約 #f((val.apc.cp_7000 / val.uiuc.cp_7000 - 1) * 100, d: 0) % 大きい）。
-また実測では $C_T, C_P$ が回転数とともに増える（低レイノルズ数で翼型の揚抗比が悪いため。Re は 75 % 半径で 10⁴–10⁵ のオーダ）のに対し、理論値はほぼ一定である。
-理論は静止状態の小型プロペラの性能を楽観的に見積もりがちで、FM も理論 #f(val.apc.fm_lim) に対し実測ベース #f(val.uiuc.fm_lim) である。
+#figure(image("figures/validation.svg", width: 100%),
+  caption: [同じプロペラを用いたメーカー試験値に対するモデルの比（$rho$ = 1.2 kg/m³ を仮定）。]) <fig:valid>
 
-#key[
-  *使い分け:* 部品の大きさを決める（定格を超えないか、上限回転に届くか）ときは、トルク・推力が大きい側を取る *設計モデル*
-  （両データの各点最大値。本プロペラでは結果的に APC 値）を使う。試験結果の *予測* には実測ベースの *公称モデル*（UIUC。7,015 rpm 以上は外挿）を使う。
-]
+この結果から、試験結果の予測には UIUC 実測に基づくモデルを用い、これを公称モデルと呼ぶ。一方、@sec:select で課す不等式は
+いずれもトルクが大きいほど厳しくなる（電流と所要電圧がトルクとともに増える）ので、部品の大きさを決める際には各回転数で
+二つのデータの大きい方を採る設計モデルを用いる。本プロペラでは設計モデルは結果的に APC 公表値と一致する。
 
-上限回転数 #f(val.rpm_limit, d: 0) rpm での負荷は次のとおり。これが「試験系が作り出さなければならない最大点」である。
+== 試験の最大点
 
-#align(center, table(
-  columns: 5,
-  align: (left, right, right, right, right),
-  stroke: none,
-  table.hline(stroke: 0.6pt),
-  [], [推力], [トルク], [軸動力], [FM],
-  table.hline(stroke: 0.4pt),
-  [公称（UIUC 外挿）], [#f(val.uiuc.thrust_gf, d: 0) gf], [#f(val.uiuc.torque_nm * 1000, d: 1) mN·m], [#f(val.uiuc.power_w, d: 1) W], [#f(val.uiuc.fm_lim)],
-  [設計（APC）], [#f(val.apc.thrust_gf, d: 0) gf], [#f(val.apc.torque_nm * 1000, d: 1) mN·m], [#f(val.apc.power_w, d: 1) W], [#f(val.apc.fm_lim)],
-  table.hline(stroke: 0.6pt),
-))
+APC は Slow Flyer 系プロペラの最大回転数を $65,000 \/ D["in"]$ rpm と定めており、8 in では #fmt(val.rpm_limit, d: 0) rpm となる。
+SF 系は薄く柔らかい低速機用の翼であり、遠心力と曲げ変形によって破損する回転数が低いためである。試験はこの回転数までとする。
+@eq:load から求めたこの回転数での負荷を @tab:max に、回転数全域の負荷を @fig:load に示す。この最大点が、
+試験系が作り出さなければならない最も厳しい運転点である。
 
-#note[
-  *回転数上限について:* APC は Slow Flyer 系の最大回転数を「65,000 / 直径[in]」と定めている（8 in で 8,125 rpm、APC は "suggested" と表現）。
-  SF は薄く柔らかい低速機用プロペラで、遠心力と曲げで破損・変形するためである。試験はこの上限まで、スタンドのセーフティ・カットオフをこの値に設定し、
-  エンクロージャ内で行う。系としては上限より上まで回せる余力を持たせる（制御余裕）が、実際に回すのは上限まで。
-]
+#figure(
+  table(
+    columns: 5,
+    align: (left, right, right, right, right),
+    toprule,
+    [], [推力], [トルク], [軸動力], [FM],
+    midrule,
+    [公称モデル（UIUC）], [#fmt(val.uiuc.thrust_gf, d: 0) gf], [#fmt(val.uiuc.torque_nm * 1000, d: 1) mN·m], [#fmt(val.uiuc.power_w, d: 1) W], [#fmt(val.uiuc.fm_lim)],
+    [設計モデル（APC）], [#fmt(val.apc.thrust_gf, d: 0) gf], [#fmt(val.apc.torque_nm * 1000, d: 1) mN·m], [#fmt(val.apc.power_w, d: 1) W], [#fmt(val.apc.fm_lim)],
+    botrule,
+  ),
+  caption: [上限回転数 #fmt(val.rpm_limit, d: 0) rpm における負荷],
+) <tab:max>
 
-== 独立なデータでの検証
+#figure(image("figures/prop_dimensional.svg", width: 100%),
+  caption: [推力・トルク・軸動力。縦線は APC の上限回転数。]) <fig:load>
 
-どちらのデータが正しいかは、第三者の測定と比べれば分かる。モータメーカー（Scorpion, Cobra, SunnySky）は、
-*同じ APC 8×3.8SF* を自社モータで回した試験値を公表している。測定された回転数で、推力と（全開点の）電流をモデルで計算して比べた。
+プロペラの質量は 7.1 g、ハブの軸穴は 1/4 in で、裏面に直径 8 mm の座ぐりがある。モータのプロペラアダプタの軸径に合わせて
+APC の SF 用アダプタリング（LPARM12SF、3/5/6 mm）を挿入して芯出しする。
 
-#fig("figures/validation.svg")[メーカー試験値に対するモデルの比。推力は回転数だけで決まるのでプロペラモデルの直接の検証になる。電流はプロペラの $C_P$ とモータモデル（$I = Q K_v + I_0$）の両方の検証になる（全開点のみ: 電源電流 ≈ モータ電流）。]
+= モータ <sec:motor>
 
-UIUC 実測ベースのモデルは推力で −3 〜 +1.5 %、電流で −2 〜 +6 % に収まる。APC 理論値は推力を 9–16 % 過大に見積もる。
-これにより、「予測は UIUC ベース、部品の大きさは APC ベース（保守側）」という使い分けが裏付けられる。
-なお、部分スロットル点（SunnySky）の電源入力電力はモデルのモータ入力より 15–17 % 大きい。これは本モデルが扱っていない
-ESC のスイッチング損失・電流リップル分と考えられる（スタンドで $I_"in"$ を予測するときは、この程度の上振れを見込む）。
+== 1 次モデルの導出
 
-== プロペラの取り付け
+ブラシレスモータを ESC で整流すると、線間の平均量について直流モータと同じ関係が成り立つ。巻線が角速度 $omega$ で磁界を横切ると、
+ファラデーの法則により回転数に比例する逆起電力 $E = k_e omega$ が生じる。同じ巻線に電流 $I$ が流れると、ローレンツ力により
+電流に比例する電磁トルク $Q_"em" = k_t I$ が生じる。電気から機械へ変換される電力は $E I$ と $Q_"em" omega$ の両方で表されるので、
+$k_e omega I = k_t I omega$ から $k_t = k_e$ が導かれる。カタログに記載される速度定数 $K_v$ はこの逆数であり（rpm/V の値に $pi \/ 30$ を掛けると SI 単位の rad/s/V になる）、
 
-APC 8×3.8SF の質量は 0.25 oz（約 7.1 g）、ハブ径 0.50 in、ハブ厚 0.30 in、軸穴 1/4 in で、裏側に直径 8 mm の座ぐりがある。
-モータ軸径に合わせて APC のアダプタリングを入れて芯出しする（LPARM12SF: 3/5/6 mm、外径 8 mm。LPAR18SF: 6 mm と 3/16 in）。
-候補モータの多くは M5 ねじのプロペラアダプタなので *5 mm リング* を使う（T-Motor AT2312 は M6 → 6 mm リング）。穴を広げる場合はドリルではなくテーパリーマで行う。
+$ E = omega / K_v, quad K_t = 1 / K_v $ <eq:kt>
 
-= モータ: 電気を回転に変える <sec:motor>
+である。端子電圧 $V_m$ は逆起電力と巻線抵抗 $R$ の電圧降下の和であり、軸トルクは電磁トルクから鉄損・軸受摩擦・ロータ風損による
+損失トルクを引いたものになる。損失トルクを電流 $I_0$（無負荷電流）に換算して書くと、
 
-== ブラシレスモータの 1 次モデル
+$ V_m = omega / K_v + I R, quad Q = K_t (I - I_0) $ <eq:motor>
 
-ドローン用の外転型ブラシレスモータは、ESC と組み合わせると直流モータと同じ式で扱える（Drela の 1 次モデル）。
-線間の量で、
+を得る（Drela の 1 次モデル）。入力 $V_m I$ に @eq:motor を代入すると $V_m I = Q omega + I^2 R + I_0 E$ となり、入力は軸出力・銅損・無負荷損に分かれる。
+したがって効率は
 
-$ V_m = E + I R, quad E = omega / K_v $ <eq:motorv>
+$ eta_m = (Q omega) / (V_m I) = (1 - I_0 / I)(1 - (I R) / V_m) $ <eq:eta>
 
-$ Q = K_t (I - I_0), quad K_t = 1 / K_v $ <eq:motorq>
+である。電流が小さいと第 1 因子が、大きいと第 2 因子が効率を下げる。
 
-ここで $K_v$ は速度定数（SI では rad/s/V。カタログの rpm/V に $pi\/30$ を掛ける）、$R$ は巻線の線間抵抗、$I_0$ は無負荷電流。
-$K_t = 1\/K_v$ は電力の保存から出る: 逆起電力 $E$ に逆らって流す電流 $I$ がする仕事 $E I$ は、電磁トルク×角速度 $Q_"em" omega$ に等しい。
-$E = omega\/K_v$ を代入すると $Q_"em" = I \/ K_v$。カタログ値で書けば
+== 運転点
 
-$ K_t ["N·m/A"] = 60 / (2 pi K_v ["rpm/V"]) = 9.549 / K_v ["rpm/V"] $
+ESC がモータに電圧 $V_m$ を与えているとき、@eq:motor から $I$ を消去すると、モータが出せるトルクは
 
-無負荷電流 $I_0$ は、鉄損（ヒステリシス損 $prop omega$、渦電流損 $prop omega^2$）、軸受摩擦、ロータの風損をまとめて電流に換算したもので、
-カタログでは「10 V での値」として与えられることが多い。本ソフトでは既定で一定値とする（速度依存も設定可能。購入後に無負荷スイープで同定する）。
+$ Q_m (omega) = K_t [(V_m - omega \/ K_v) / R - I_0] $ <eq:line>
 
-#note[
-  *カタログ値の信頼性:* $R$ は多くが線間値だが、表記が明示されないメーカーもある（SunnySky と Cobra は線間と明記）。
-  AXI は同じ Kv で旧カタログと現行ページの $R$ が 1.7 倍違う。$I_0$ は測定電圧（8, 8.4, 10, 12 V）がメーカーごとに違い、電圧とともに増える。
-  したがってカタログ値は *公称値* として選定に使い、購入後にスタンドで $K_v$（無負荷回転数/電圧）、$R$（4 端子法、線間）、$I_0(omega)$ を測り直す。
-]
+であり、回転数とともに直線的に減少する。一方、プロペラが要求するトルク $Q_p (omega)$ は @eq:load より回転数の 2 乗で増加する。
+定常状態ではロータの角運動量が一定なので $Q_m = Q_p$ が成り立ち、減少関数と増加関数の交点として運転点がただ一つ定まる（@fig:match）。
+@eq:line の傾きの大きさは $K_t \/ (K_v R) = 1 \/ (K_v^2 R)$ であり、巻線抵抗の小さいホビー用モータでは非常に大きい。
+そのため回転数は負荷にほとんど依存せず $omega approx K_v V_m$ で決まり、負荷トルクは主として電流を決める。
 
-== 損失と効率
+#figure(image("figures/matching.svg", width: 80%),
+  caption: [モータ特性線（duty 一定、灰色）とプロペラ負荷線の交点としての運転点（#ref.motor、電源 #fmt(ref.v_set, d: 1) V）。]) <fig:match>
 
-入力 $V_m I$ は、軸出力・銅損・無負荷損に分かれる。
+== 巻線の相似則と Kv の意味
 
-$ V_m I = underbrace(Q omega, "軸出力") + underbrace(I^2 R, "銅損") + underbrace(I_0 E, "無負荷損"), quad
-  eta_m = (1 - I_0 / I)(1 - (I R) / V_m) $ <eq:motoreta>
+同じステータと磁石を用い、巻数 $N$ だけを $k$ 倍に変えたモータを考える。逆起電力は巻数に比例するので $K_v$ は $1 \/ k$ 倍になる。
+同じ巻線スペースに $k$ 倍の巻数を収めると、線の長さが $k$ 倍、断面積が $1 \/ k$ 倍になるので、$R$ は $k^2$ 倍になる。したがって
+モータ定数
 
-電流が小さいと $I_0$ の割合が大きく、電流が大きいと $I R$ の割合が大きい。その間に効率最大点がある。
+$ K_m eq.def K_t / sqrt(R) $ <eq:km>
 
-== 運転点 = モータ特性線とプロペラ負荷線の交点
+は巻数に依存しない。銅損は @eq:motor で $I_0$ を無視すると $I^2 R = (Q \/ K_t)^2 R = (Q \/ K_m)^2$ となるから、同じトルクを出すときの
+銅損は $K_m$ だけで決まる。鉄損も同じ回転数では巻数によらない。つまり、ステータの大きさ（$K_m$）が損失と発熱を決め、
+Kv は同じ機械出力を高電圧・小電流で作るか低電圧・大電流で作るかの配分を決めるにすぎない（@fig:kvtrade）。
+安定化電源は電圧を連続に設定できるので、どの Kv に対しても所要電圧を合わせることができる。ここから選定は二段に分かれる。
+第一に最大トルクでの損失 $(Q \/ K_m)^2 + I_0 E$ が許容できる大きさのモータを選び、第二に所要電圧が ESC と電源の範囲に入るように Kv を選ぶ。
+本プロペラの最大トルク #fmt(val.apc.torque_nm * 1000, d: 0) mN·m に対し、$K_m approx$ 0.03 N·m/√W の 2212 級モータで銅損は約 5 W であり、
+2212–2316 級で十分である。
 
-ESC が duty $d$ でモータに平均電圧を与えると、@eq:motorv と @eq:motorq から、その duty でのモータの「出せるトルク–回転数」の関係は
-右下がりの直線になる（モータ特性線）。一方プロペラは @eq:coef の $Q prop n^2$ の放物線を要求する（負荷線）。
-定常運転点はこの二つの交点である。
+#figure(image("figures/kv_tradeoff.svg", width: 100%),
+  caption: [同じフレームで巻数だけを変えたときの所要電源電圧・電流・損失（上限回転数、設計 duty 80 %）。損失は一定で、電圧と電流が入れ替わる。]) <fig:kvtrade>
 
-#fig("figures/matching.svg")[運転点の決まり方（基準モータ: #ref.motor, 電源 #f(ref.v_set, d: 1) V）。灰色の直線が duty 一定のモータ特性線、色付きの曲線がプロペラ負荷線、点が運転点。]
+#figure(image("figures/efficiency_map.svg", width: 80%),
+  caption: [#ref.motor の効率マップとプロペラ負荷線。試験中の運転点は負荷線の上を移動する。]) <fig:effmap>
 
-モータ特性線の傾きは $-1\/(K_v^2 R_"tot")$ で、巻線抵抗が小さいモータでは非常に急（回転数が負荷であまり落ちない）。
-そのため回転数はほぼ $K_v d V_"in"$ で決まり、負荷トルクは主に *電流* を決める。
+カタログ値の扱いについて述べておく。$R$ は多くのメーカーで線間値であるが表記の曖昧なものがあり、$I_0$ は測定電圧（8–12 V）が
+メーカーごとに異なる。そこで本書ではカタログ値を公称値として選定に用い、購入後にスタンドで $K_v$、$R$（4 端子法、線間）、$I_0 (omega)$
+を測定し直すことを前提とする。
 
-== Kv は何を決めるか: 同じ大きさのモータの巻き替え
+= ESC と電源 <sec:esc>
 
-同じステータ・磁石（同じフレーム）で巻数 $N$ だけ $k$ 倍に変えると、逆起電力は $N$ に比例するので $K_v -> K_v \/ k$、
-線長が $k$ 倍・線断面が $1\/k$ 倍になるので $R -> k^2 R$。すると
+== ESC の平均化モデル
 
-$ K_m eq.def K_t / sqrt(R) quad "は不変", quad P_"cu" = I^2 R approx (Q / K_m)^2 $ <eq:km>
+ESC は 6 個の MOSFET からなる三相ブリッジで常に 2 相に通電し、通電相を 60° ごとに切り替える。通電相の電圧は数十 µs 周期の PWM で
+刻まれ、デューティ比 $d$ で平均電圧が調整される。モータのインダクタンスによって電流は PWM 周期内でほぼ一定に保たれるので、
+1 周期で平均すると、モータに加わる平均電圧は入力電圧の $d$ 倍から導通経路の電圧降下を引いたものになる。導通している 2 個の MOSFET
+と配線の抵抗を $R_"on"$ とすると、
 
-つまり *銅損はフレームの大きさ（$K_m$）とトルクだけで決まり、Kv には依存しない。* 鉄損も同じ回転数なら同じである。
-Kv を変えると変わるのは「同じ機械出力を、高い電圧・小さい電流で作るか、低い電圧・大きい電流で作るか」だけである。
+$ V_m = d V_"in" - I_m R_"on" $ <eq:escv>
 
-#fig("figures/kv_tradeoff.svg")[同じフレームで Kv だけ変えたときの必要電圧・電流・損失（上限回転、設計 duty 80 %）。損失は一定で、電圧と電流が入れ替わるだけ。]
+である。ESC 内部に電力を蓄える要素はないので、入力電力は出力電力と ESC の損失の和に等しい。@eq:escv を用いると
+$V_"in" I_"in" = (V_m + I_m R_"on") I_m + V_"in" I_q = d V_"in" I_m + V_"in" I_q$ となり、
 
-したがってモータ選定は二段に分かれる。
+$ I_"in" = d I_m + I_q $ <eq:esci>
 
-+ *フレーム（大きさ）*: 最大トルクでの損失 $(Q\/K_m)^2 + I_0 E$ が発熱として許容できるか。本プロペラの最大トルク
-  #f(val.apc.torque_nm * 1000, d: 0) mN·m に対し、2212 級（$K_m approx$ 0.03 N·m/√W）で銅損 5–6 W と小さく、2208–2216 級で十分である。
-+ *巻線（Kv）*: 電源・ESC の電圧範囲に、必要電圧が収まるように選ぶ。安定化電源は電圧を連続に変えられるので、Kv の自由度は大きい。
+を得る（$I_q$ は制御回路の消費電流）。すなわち部分スロットルでは電源側の電流はモータ電流より小さい。スタンドが測るのは
+$V_"in"$ と $I_"in"$ であり、モータの定格と銅損に関係するのは $I_m$ である。
 
-#fig("figures/efficiency_map.svg")[基準モータの効率マップと、プロペラ負荷線（実測ベース）。試験は負荷線の上だけを動く。]
+== 電源と系の閉じ方
 
-= ESC: 直流を三相に、電圧を duty に <sec:esc>
+電源は開放電圧 $V_"set"$ と、配線・コネクタ・スタンドのシャント抵抗をまとめた直列抵抗 $R_s$ で表す。
 
-== 6 ステップ駆動とセンサレス
+$ V_"in" = V_"set" - I_"in" R_s $ <eq:src>
 
-ホビー用 ESC は 6 個の MOSFET で三相ブリッジを作り、常に 2 相に通電して 60° ごとに切り替える（6 ステップ駆動）。
-モデルで線間抵抗を使うのはこのためである。切替のタイミングは、通電していない 1 相の逆起電力のゼロクロスで検出する（センサレス）。
-逆起電力は回転数に比例するので、*極低速では検出できない*。始動は開ループで行い、ある程度の回転数から閉ループになる。
-試験の低回転端（ここでは #f(val.spec.rpm_min, d: 0) rpm）で duty が小さすぎると、回転が不安定になりやすい。
-
-== PWM と平均化モデル
-
-ESC は通電相の電圧を PWM（周期 数十 µs）で刻み、duty $d$ で平均電圧を調整する。モータのインダクタンスで電流は平滑化されるので、
-1 周期で平均すると ESC は降圧（バック）コンバータとして振る舞う。
-
-$ V_m = d V_"in" - I_m R_"on", quad I_"in" = d I_m + I_q $ <eq:esc>
-
-$R_"on"$ は導通している 2 個の MOSFET と配線の抵抗、$I_q$ は ESC 自身の消費電流。重要なのは
-*電源側電流 $I_"in"$ はモータ電流 $I_m$ の約 $d$ 倍*（部分スロットルでは小さい）であること。
-スタンドが測るのは $V_"in", I_"in"$ で、モータの定格や銅損に関係するのは $I_m$ である。
-
-#fig("figures/throttle.svg")[duty に対する回転数・推力・電流（基準モータ、電源 #f(ref.v_set, d: 1) V）。回転数は duty にほぼ比例する。電流は推力と同じく 2 乗的に増える。]
-
-== ESC に求める要件
-
-#table(
-  columns: (auto, 1fr),
-  stroke: none,
-  inset: (x: 6pt, y: 4pt),
-  table.hline(stroke: 0.6pt),
-  [*項目*], [*要件と理由*],
-  table.hline(stroke: 0.4pt),
-  [入力電圧], [設定電圧が定格上限の 90 % 以下（減速時の回生・配線インダクタンスによる跳ね上がりの余裕）],
-  [電流], [最大回転時のモータ電流が連続定格の 60 % 以下（試験は長時間・繰り返しの定常運転）],
-  [入力信号], [標準サーボ PWM（1000–2000 µs）を受け付けること。1585 本体の ESC 出力は *50 Hz・5 V の PWM 固定*（DShot 等は別売の RC Control Board が必要）。Bluejay（DShot 専用）に書き換えた BLHeli_S は不可。BLHeli_32 は高速 MCU だと 50 Hz PWM の下限に注意],
-  [設定], [回転方向、スロットル範囲の校正（Hobbywing は既定 1100–1940 µs）、ブレーキ/アクティブフリーホイールの OFF（回生の有無に関係、@sec:regen）、低電圧カットの無効化],
-  [BEC], [不要。BEC 付き ESC を使うときは、1585 の 5 V ジャンパ（ESC 給電用、最大 100 mA）と 5 V がぶつからないよう配線を確認する],
-  [テレメトリ], [不要（回転数は光学式で測る）],
-  table.hline(stroke: 0.6pt),
-)
-
-= 電源: 安定化電源で試験するときの注意 <sec:source>
-
-== テブナン等価回路
-
-電源は「開放電圧 $V_"set"$ と直列抵抗 $R_s$」で表す。$R_s$ は配線・コネクタ・スタンドのシャント抵抗（バッテリなら内部抵抗も）。
-
-$ V_"in" = V_"set" - I_"in" R_s $ <eq:source>
-
-安定化電源は電流制限（CC）を持ち、設定電流を超えると電圧を下げる。試験では、最大点の $I_"in"$ より少し上に電流制限をかけておくと、
-異常時（ロック・短絡）の保護になる。バッテリと違い、試験中に電圧が下がっていかないので、スイープの再現性が高い。
-
-PWR401L 固有の注意（取扱説明書 IB035086 より）:
-
-- *前面端子は約 10–11 A で過電流保護（FOCP）が働く*。仕様は背面端子に対するものなので、背面端子から配線する。
-- リモートセンシングで配線の電圧降下（片側約 1.5 V まで）を補償できる。ESC 入力端で電圧を一定にしたい場合に使う（ただし逆流防止ダイオードとは併用不可）。
-- OVP は 4–44.8 V で設定可能。設定電圧＋数 V に設定しておく。
-
-== 回生: 電源は電流を吸い込めない <sec:regen>
-
-回転体（プロペラ＋ロータ）は運動エネルギー $E_k = J omega^2 \/ 2$ を持つ。ESC がブレーキ（相補 PWM・アクティブフリーホイール・停止時ブレーキ）で減速させると、
-モータは発電機になり、エネルギーが直流母線に戻る（回生）。バッテリなら充電されるだけだが、
-*一般的な安定化電源は電流を吸い込めない* ので、戻った電荷が ESC の入力コンデンサを充電し、電圧が跳ね上がる。
-
-$ V_"after" = sqrt(V_0^2 + 2 eta_r E_k / C) $ <eq:regen>
-
-#fig("figures/regen.svg")[左: 上限回転から急減速したとき、回生エネルギーを母線容量 $C$ だけで受けた場合の電圧（$J$ = #f(val.regen.j_gcm2, d: 0) g·cm² は概算）。右: 空力トルクだけで減速する速さ。]
-
-回転体のエネルギーは上限回転で約 #f(val.regen.energy_lim_j, d: 1) J と小さく見えるが、ESC の入力コンデンサ（数百 µF）で受けると数十 V に達しうる。対策は次の 3 つ。
-
-+ *ゆっくり下げる*: プロペラは空力トルクで自然に速く減速する（右図）。指令をそれより遅く下げれば、モータは常に駆動側にいて回生は起きない。
-  1585 のスクリプトで、下げ方向のステップをゆっくりにする。
-+ *吸収先を作る*: 電源の吸い込み（ブリーダ）機能を使う、母線に大容量コンデンサや、バッテリ・ブレーキ抵抗＋ツェナ等を並列に置く。
-+ *ESC 設定*: 停止時ブレーキを無効にする。非常停止（指令 0）で惰性回転させる。
-
-#note[
-  *PWR401L について確認できたこと:* 取扱説明書に「逆電流を吸収できない。回生負荷を接続すると出力電圧が上昇して不安定になり、故障の原因になる」と明記されている。
-  ブリーダ（強ブリーダ HYP）の吸い込みは 12–15 V で約 0.5 A（6–8 W）しかなく、回生の吸収先にはならない。
-  メーカーの推奨は、負荷と並列のバイパス抵抗、または逆流防止ダイオード。Tyto も「ESC の入力側にコンデンサバンクを足す、ダイオードやコンデンサを緩衝に使う」としている。
-  本試験では *対策 1 と 3（回生を起こさない運転と設定）を基本* とし、保険として回生クランプ（maxon DSR 70/30）を入れ、非常停止は PWR401L の J1 端子で出力を切る構成とする。詳細と部品表は別冊 `safety.pdf`。
-]
-
-= 選定 <sec:select>
-
-== 解き方
-
-@eq:coef, @eq:motorv, @eq:motorq, @eq:esc, @eq:source を連立させる。回転数を与えると、プロペラから $Q$、モータ式から $I_m, V_m$ が直接決まり、
-残る未知数 duty $d$ は次の 2 次方程式の小さい方の根になる（実根がなければ電源が電力を出せない）。
+回転数を与えると、@eq:load から $Q$ が、@eq:motor から $I_m$ と $V_m$ が直接決まる。残る未知数 $d$ は、@eq:escv から @eq:src を
+連立して $V_"in"$ と $I_"in"$ を消去すると
 
 $ -I_m R_s thin d^2 + (V_"set" - I_q R_s) thin d - (V_m + I_m R_"on") = 0 $ <eq:duty>
 
-逆に duty を与えたときの回転数は、$d("rpm")$ が単調なので 1 次元の求根（Brent 法）で求める。
+の小さい方の根として求まる。実根がなければ、その回転数に必要な電力を電源が供給できないことを意味する。逆に duty を与えたときの
+回転数は、$d$ が回転数の単調増加関数であることから 1 次元の求根で求まる。@fig:throttle に duty に対する回転数・推力・電流を示す。
+@sec:motor で述べたとおり回転数は duty にほぼ比例し、推力と電流はその 2 乗で増える。
 
-== 制約と余裕
+#figure(image("figures/throttle.svg", width: 100%),
+  caption: [duty に対する回転数・推力・電流（#ref.motor、電源 #fmt(ref.v_set, d: 1) V）。実線はモータ電流 $I_m$、点線は電源側電流 $I_"in"$。]) <fig:throttle>
 
-#table(
-  columns: (auto, 1fr, auto),
-  stroke: none,
-  inset: (x: 6pt, y: 4pt),
-  table.hline(stroke: 0.6pt),
-  [*制約*], [*内容*], [*種類*],
-  table.hline(stroke: 0.4pt),
-  [上限回転に届く], [設計モデルで #f(val.rpm_limit, d: 0) rpm に必要な duty ≤ #pct(val.spec.duty_design_max)], [必須],
-  [電圧が高すぎない], [公称モデルで上限回転の duty ≥ #pct(val.spec.duty_nominal_min)（低いと分解能・電流リップル・低速安定性が悪化）], [推奨],
-  [低回転端], [#f(val.spec.rpm_min, d: 0) rpm での duty ≥ #pct(val.spec.duty_low_min)], [推奨],
-  [モータ電流], [最大点の相電流 ≤ 定格の #pct(val.spec.motor_i_frac)（巻線 #f(val.spec.winding_temp_c, d: 0) °C で評価）], [必須],
-  [ESC], [電圧範囲（上限 × #pct(val.spec.esc_v_frac)）、電流 ≤ 定格の #pct(val.spec.esc_i_frac)、PWM 入力], [必須],
-  [電源], [40 V, 40 A, 400 W 以内], [必須],
-  [スタンド], [推力 5 kgf, トルク 2 N·m, 電流 55 A, 電圧 50 V 以内], [必須],
-  table.hline(stroke: 0.6pt),
-)
+ESC は 1585 から標準サーボ PWM（50 Hz、1000–2000 µs）で駆動されるので、この信号を受け付けることが必要である。また
+PWR401L は電流を吸い込めないため、ESC が回生しない設定（ブレーキとアクティブフリーホイールの無効化）を持つことが必要である。
+この条件の導出は別冊の安全設計で行う。
 
-推奨電圧は、設計モデルで上限回転の duty が #pct(val.spec.duty_target) になる電圧（0.1 V 切り上げ）とする。
+= 選定基準 <sec:select>
+
+== 最大点に課す不等式
+
+前節までで、運転点は電源電圧 $V_"set"$、モータ定数 $(K_v, R, I_0)$、duty の関数として求まった。ここに試験の要求と部品の定格を
+不等式として課す。まず、試験の最大回転数 $n_"max"$ を設計モデルの負荷で duty $d_1$ 以下で実現できなければならない。
+
+$ d(n_"max"; "設計") <= d_1 = #sp.duty_design_max $ <eq:c1>
+
+$d_1 < 1$ とする理由は、外挿した $C_P$、カタログ値の $R$、配線抵抗の不確かさに対して制御の余裕を残すためである。@eq:motor と @eq:escv
+で $R_s$ を無視すると、@eq:c1 は電源電圧の下限
+
+$ V_"set" >= (n_"max" \/ K_v + I_m (R + R_"on")) / d_1, quad I_m = Q_"max" K_v + I_0 $ <eq:vlow>
+
+を与える。次に、電源電圧が高すぎると最大回転数でも duty が小さくなり、スロットル分解能が下がるうえ、PWM 電流リップル
+（$prop V_"in" d (1 - d)$）とスイッチング損失が増え、低回転端ではセンサレス制御が不安定になる。そこで公称モデルの最大点で
+
+$ d(n_"max"; "公称") >= d_2 = #sp.duty_nominal_min $ <eq:c2>
+
+を課す。これは電源電圧の上限を与える。電流については、@eq:motor と @eq:kt から最大点のモータ電流が $I_m = Q_"max" K_v + I_0$ となり、
+Kv に比例して増えることが分かる。試験は定常運転を長時間繰り返すので、モータの定格電流の #pct(sp.motor_i_frac)、ESC の連続定格の
+#pct(sp.esc_i_frac) 以下とする（巻線温度 #fmt(sp.winding_temp_c, d: 0) °C の抵抗で評価する）。最後に、設定電圧は ESC の定格電圧の
+#pct(sp.esc_v_frac) 以下、電源とスタンドの定格以内とする。推奨電圧は、設計モデルで最大回転数の duty が #pct(sp.duty_target) になる電圧とした。
 
 == 選定マップ
 
-@eq:km より、同じフレームなら Kv と電圧だけが自由度である。上の制約のうち電圧に関係するものを、Kv–電圧平面に描くと次の図になる。
+@eq:c1 と @eq:c2 は電源電圧の下限と上限を与え、@eq:km の相似則により同じ大きさのモータでは Kv と電圧だけが自由度である。
+したがって Kv–電圧平面に両方の境界を描くと、成立する組合せは帯状の領域になる（@fig:map）。下限は @eq:vlow のとおりおおよそ
+$1 \/ K_v$ に比例する。帯は任意の Kv に存在するので、Kv を決めると電圧が決まり、電圧が決まると ESC のセル数クラスが決まる。
 
-#fig("figures/kv_v_map.svg")[選定マップ。色の付いた帯が成立領域（色は上限回転での公称 duty）、破線が推奨電圧。下の灰色は上限回転に届かない領域、上の灰色は電圧が高すぎる領域。横線は各セル数用 ESC の電圧上限（×0.9）。黒い縦棒が候補モータの成立電圧範囲、白抜きの点が推奨電圧。]
+#figure(image("figures/kv_v_map.svg", width: 92%),
+  caption: [選定マップ。色の帯が成立領域（色は最大回転数での公称 duty）、破線が推奨電圧。横線は各セル数用 ESC の定格電圧の 90 %。黒い縦棒は候補モータの成立電圧範囲、白抜きの点は推奨電圧で、番号は @tab:cand に対応する。]) <fig:map>
 
-読み方: 候補モータの縦棒が、手持ち（購入予定）の ESC の横線より下に入っていればよい。帯はどの Kv でも存在する。
-つまり Kv を決めると電圧が決まり、ESC のセル数クラスが決まる、という順で決まる。
+== 国内入手可能品の評価
 
-== 候補の比較
+国内で購入できる（Amazon.co.jp、国内ラジコン通販、メーカーの日本向け通販で扱いがある）ことを条件に、モータ #val.n_motors 個と
+ESC #val.n_escs 個を評価した。各モータには、必須条件をすべて満たし、推奨条件の違反が最も少なく、電流定格が最も小さい ESC を組み合わせた。
+推奨条件には、回生を無効化できることが取扱説明書で確認できることと、モータ側の配線がはんだ付けなしで接続できることを含めた。
+結果を @tab:cand と @fig:compat に示す。
 
-#if cands.len() == 0 [
-  #note[候補モータのカタログ（`src/propmotor/data/catalog/motors.toml`）を作成中。作成後 `make_figures.py` を再実行するとこの節に表と図が入る。]
-] else [
-  *国内で購入できる*（Amazon.co.jp、国内ラジコン通販、メーカー日本向け通販）ことを条件に、モータ #val.n_motors 個・ESC #val.n_escs 個を評価した
-  （調査 2026-11、カタログ値。はんだ付けが必要な基板型 ESC は除外）。各モータには、必須条件をすべて満たし、推奨条件の違反が最少で、
-  電流定格が最小の ESC を組み合わせている（大きすぎる ESC は電流分解能とコストの点で不利なだけ）。
-  #let yen(x) = if x == none { "—" } else { "¥" + str(x) }
-  #figure(
-    text(size: 8.3pt, table(
-      columns: 9,
-      align: (right, left, right, right, right, right, right, right, left),
-      stroke: none,
-      inset: (x: 3.2pt, y: 2.6pt),
-      table.hline(stroke: 0.6pt),
-      [*No.*], [*モータ（入手先）*], [*Kv*], [*R* \[Ω\]], [*I₀* \[A\]], [*推奨 V*], [*$I_m$* \[A\]], [*損失* \[W\]], [*組み合わせ ESC*],
-      table.hline(stroke: 0.4pt),
-      ..cands.enumerate().map(((i, c)) => (
-        [#(i + 1)], [#c.motor \ #text(size: 7pt, fill: rgb("#52514e"))[#c.jp_shop #yen(c.price_jpy)]], [#f(c.kv, d: 0)],
-        [#f(c.r_ohm, d: 3)], [#f(c.i0_a, d: 2)], [#f(c.v_set, d: 1)], [#f(c.i_motor, d: 1)], [#f(c.p_motor_loss, d: 1)],
-        [#c.esc.replace("Hobbywing ", "")],
-      )).flatten(),
-      table.hline(stroke: 0.6pt),
-    )),
-    caption: [国内入手可能な候補（No. は選定マップの番号）。$I_m$ と損失（銅損＋無負荷損）は設計モデル・巻線 60 °C、上限回転時。],
-  )
-  #fig("figures/compatibility.svg")[モータ × ESC の適合表（国内入手可能品）。Skywalker 20A（2–3S）は電圧上限（12.6 V × 0.9）のため Kv 1150 のモータとしか組めない。「注意」は回生（ブレーキ/フリーホイール）を OFF にできるか未確認、またはモータ側コネクタの付いていない ESC。]
-  #fig("figures/candidates.svg")[候補ごとの主要指標（上限回転。電圧・電流・損失は設計モデル、効率は公称モデル）。縦線は電流定格の 70 %。]
-  #fig("figures/candidates_power.svg", w: 78%)[候補ごとの、上限回転での電力の行き先（公称モデル）。]
-]
+#let yen(x) = if x == none { "—" } else { "¥" + str(x) }
+#figure(
+  text(size: 8.5pt, table(
+    columns: 9,
+    align: (right, left, right, right, right, right, right, right, left),
+    inset: (x: 3.2pt, y: 2.8pt),
+    toprule,
+    [No.], [モータ（入手先）], [Kv], [$R$ [Ω]], [$I_0$ [A]], [推奨 V], [$I_m$ [A]], [損失 [W]], [組み合わせる ESC],
+    midrule,
+    ..cands.enumerate().map(((i, c)) => (
+      [#(i + 1)], [#c.motor \ #text(size: 7pt, fill: rgb("#52514e"))[#c.jp_shop #yen(c.price_jpy)]], [#fmt(c.kv, d: 0)],
+      [#fmt(c.r_ohm, d: 3)], [#fmt(c.i0_a, d: 2)], [#fmt(c.v_set, d: 1)], [#fmt(c.i_motor, d: 1)], [#fmt(c.p_motor_loss, d: 1)],
+      [#c.esc.replace("Hobbywing ", "")],
+    )).flatten(),
+    botrule,
+  )),
+  caption: [国内入手可能な候補。$I_m$ と損失（銅損と無負荷損の和）は設計モデル・巻線 60 °C での最大点の値。],
+) <tab:cand>
 
-== 推奨構成と、判断の根拠 <sec:recommend>
+#figure(image("figures/compatibility.svg", width: 100%),
+  caption: [モータと ESC の適合。NG は必須条件の違反、注意は推奨条件の違反を表す。Skywalker 20A V2 は 2–3S 用で電圧上限が 11.3 V となるため、Kv 1150 のモータとしか組めない。]) <fig:compat>
 
-どの候補も必須条件は満たす（この試験は 2212 級には軽い負荷である）。差が出るのは次の二次的な観点で、ここは人の判断になる。
+#figure(image("figures/candidates.svg", width: 100%),
+  caption: [候補ごとの主要指標（最大点）。縦線は電流定格の 70 %。]) <fig:candm>
 
-+ *回生の扱い*: PWR401L は逆電流を吸えないので、ブレーキとアクティブフリーホイールを *OFF にできることが取扱説明書で確認できる* ESC を選ぶ
-  （Hobbywing Skywalker V2、OK模型 TAHMAZO R-30）。詳細は `safety.pdf`。
-+ *はんだ付けなしで組める*: ESC のモータ側に 3.5 mm バレットが付いていて、モータ側も 3.5 mm バレットなら挿すだけ。ESC の電源側が裸線でも、レバー式コネクタ（WAGO 221 等）で XT60 付きケーブルにつなげる。
-+ *発熱の余裕*: モータ定数 $K_m$ が大きいほど損失が小さく、長いスイープでも巻線温度とその変化（$R$ の変化）が小さい。
-+ *取付*: 1585 は M2–M4、ピッチ 56 mm 以下。候補は 16×16 または 16×19 mm・M3 で問題ない。プロペラはモータのアダプタ軸径に合う APC SF リング（LPARM12SF: 3/5/6 mm）。
-+ *入手性・価格*。
+== 推奨構成
 
-#key[
-  *推奨:* *#ref.motor*（#ref.motor_shop、¥#ref.motor_price_jpy）＋ *#ref.esc*（#ref.esc_shop、¥#ref.esc_price_jpy）、電源 *#f(ref.v_set, d: 1) V*（成立範囲 #f(ref.v_band.at(0), d: 1)–#f(ref.v_band.at(1), d: 1) V）。
-  - 国内候補で $K_m$ が最大級（#f(ref.km * 1000, d: 1) mN·m/√W、2316 サイズ）で、上限回転のモータ損失が小さい。
-  - モータの 3.5 mm バレットが ESC のモータ側バレットにそのまま挿さる。ESC は取説でブレーキ Disabled（出荷時）・アクティブフリーホイール OFF が設定できる。
-  - 上限回転でのモータ電流 #f(ref.design.i_motor, d: 1) A（設計モデル）、電源電流 #f(ref.nominal.i_in, d: 1) A、入力 #f(ref.nominal.p_in, d: 0) W。PWR401L・1585 の定格に対して十分小さい。
-  - 対抗馬: SunnySky X2216-880（$K_m$ 最大、Amazon。類似品に注意）、T-Motor AS2312-1150 ＋ Skywalker 20A V2（約 10 V。3S の ESC で済む）。
-  - 要確認: モータ付属のプロペラアダプタの軸径（→ APC リングの径）。ESC のプログラムは別売の PG-CARD（セキド ¥1,760）が楽。
-]
+すべての候補が必須条件を満たした。これは本試験の負荷が 2212 級のモータにとって軽いことによる。したがって候補の優劣は二次的な観点で決まる。
+まず ESC は、PWR401L が電流を吸い込めない以上、ブレーキとアクティブフリーホイールを無効化できることが取扱説明書で確認できる
+Hobbywing Skywalker V2 系が望ましい。Kv 880–980 のモータでは所要電圧が 12–14 V となり 4S 対応品が必要なので、Skywalker 40A V2 になる。
+この ESC はモータ側に 3.5 mm のバレットコネクタが付いており、同径のバレットを持つモータならはんだ付けなしで接続できる。
+電源側は裸線であるが、レバー式コネクタ（WAGO 221）で XT60 付きのケーブルに接続できる。次にモータは、損失が小さく長時間の試験で
+巻線温度とその変化が小さいもの、すなわち $K_m$ の大きいものが望ましい。
 
-#fig("figures/power_breakdown.svg")[基準構成（#ref.motor, #f(ref.v_set, d: 1) V）の上限回転での電力の行き先。]
+以上から、#ref.motor（#ref.motor_shop、¥#ref.motor_price_jpy）と #ref.esc（#ref.esc_shop、¥#ref.esc_price_jpy）の組合せを推奨し、
+電源電圧を #fmt(ref.v_set, d: 1) V（成立範囲 #fmt(ref.v_band.at(0), d: 1)–#fmt(ref.v_band.at(1), d: 1) V）とする。
+このモータは $K_m$ = #fmt(ref.km * 1000, d: 1) mN·m/√W で国内候補中最大級であり、3.5 mm バレットを備える。最大点でのモータ電流は
+#fmt(ref.design.i_motor, d: 1) A（設計モデル）、電源電流は #fmt(ref.nominal.i_in, d: 1) A、入力電力は #fmt(ref.nominal.p_in, d: 0) W であり、
+PWR401L と 1585 の定格に対して十分小さい。損失の内訳を @fig:power に示す。対抗案は、$K_m$ が同等で Amazon で購入できる
+SunnySky X2216-880（類似品に注意）と、約 10 V で 3S 用 ESC が使える T-Motor AS2312-1150 と Skywalker 20A V2 の組合せである。
+なお Dualsky のプロペラアダプタ軸径は公表されていないため、購入後に測定してアダプタリングの径を決める。
 
-= 試験計画への示唆 <sec:test>
+#figure(image("figures/power_breakdown.svg", width: 85%),
+  caption: [推奨構成の最大点における電力の行き先。]) <fig:power>
 
-== スタンドの計測不確かさ
+= 測定精度 <sec:accuracy>
 
-1585 の推力・トルクの公差は「読み値の 0.5 % ∓ 0.001（kgf, N·m）」である。本プロペラのトルクは最大でも 0.06 N·m 台なので、
-*絶対項 0.001 N·m が効いて、低回転のトルク（$C_P$）の精度が悪い*。
+係数は測定値から $C_T = T \/ (rho n^2 D^4)$、$C_P = 2 pi Q \/ (rho n^2 D^5)$ として求めるので、誤差の伝播則により相対不確かさは
 
-#fig("figures/measurement_uncertainty.svg")[予測トルクと公差（左、対数軸）、$C_T$・$C_P$ の相対不確かさ（右）。公差は偏りとして扱い、平均化で減らないものとした。]
+$ (delta C_T) / C_T = sqrt(((delta T) / T)^2 + (2 (delta n) / n)^2 + ((delta rho) / rho)^2) $ <eq:unc>
 
-- $C_P$ が ±10 % 以内に入るのはおおむね 4,000 rpm 以上。低回転側は参考値として扱う。
-- 各スイープの前後で、ゼロ点（風のない静止状態）を記録してドリフトを差し引く。トルクは付属の校正治具で校正する。
-- 電気入力 $V_"in" I_"in"$ は精度よく測れるので、モータモデル（次項で同定）で軸動力を推定し、トルク計測とクロスチェックできる。
+となり、$C_P$ についても $T$ を $Q$ に置き換えた同じ式が成り立つ。1585 の推力とトルクの公差は「読み値の 0.5 % と 0.001（kgf、N·m）の和」
+であり、絶対項 0.001 N·m は本プロペラの低回転のトルクに比べて無視できない。@fig:unc に示すように、$C_P$ の不確かさが 10 % を下回るのは
+およそ 4,000 rpm 以上であり、それより低い回転数の $C_P$ は参考値として扱う。$C_T$ は 2,000 rpm 以上で 5 % 以内に収まる。
+また測定されるトルクにはプロペラのトルクに加えてロータ（ベル）の風損が含まれる（軸受摩擦はロータとステータの間の内力なので
+スタンドの反力には現れない）。プロペラを外した同じ回転数のスイープを行えば、この風損と $I_0 (omega)$ を同時に求めることができる。
 
-== プロペラなしスイープ（タレ）
+#figure(image("figures/measurement_uncertainty.svg", width: 100%),
+  caption: [予測トルクと 1585 の公差（左、対数軸）および係数の相対不確かさ（右）。回転数 0.2 %、密度 1 % を仮定。]) <fig:unc>
 
-測定されるトルクは「プロペラのトルク＋ロータ（ベル）の風損」である（軸受摩擦はロータ–ステータ間の内力なので、スタンドの反力には現れない）。
-プロペラを外して同じ回転数スイープを行うと、ロータ風損と $I_0(omega)$ が同時に得られる。前者はプロペラ試験の値から差し引き、後者はモータモデルの同定に使う。
-
-== 実施上の注意
-
-- 回転数の各ステップで 2–3 秒以上保持し、定常値を平均する（スタンドのサンプリングは最大 80 Hz 程度）。
-- 気温・気圧・湿度を記録して $rho$ を求め、係数化に使う。
-- セーフティ・カットオフ: 回転数 #f(val.rpm_limit, d: 0) rpm、電流は最大予測値の 1.5 倍程度、モータ温度。
-- プロペラは床・壁から十分離し（直径の数倍）、エンクロージャ内で回す。
-
-= ソフトウェアの使い方
-
-#table(
-  columns: (auto, 1fr),
-  stroke: none,
-  inset: (x: 6pt, y: 4pt),
-  table.hline(stroke: 0.6pt),
-  [*ファイル*], [*役割*],
-  table.hline(stroke: 0.4pt),
-  [`src/propmotor/propeller.py`], [APC `.dat`・UIUC 実測の読み込み、$C_T(n), C_P(n)$、FM、設計用包絡],
-  [`motor.py`, `esc.py`, `source.py`], [モータ 1 次モデル、ESC 平均化モデル、電源（PSU・LiPo）],
-  [`system.py`], [運転点ソルバ（回転数→duty、duty→回転数、到達最大回転数、所要電圧）],
-  [`selection.py`], [試験仕様 `TestSpec`、制約チェック `evaluate`、選定マップ `kv_voltage_map`],
-  [`stand.py`, `regen.py`], [1585 の定格と公差モデル、回生の見積り],
-  [`plotting.py`], [この文書の図すべて],
-  [`notebooks/selection.py`], [VS Code で `# %%` セルごとに実行して、図を見ながら選定する],
-  [`scripts/make_figures.py`], [この文書の図と数値を再生成],
-  table.hline(stroke: 0.6pt),
-)
-
-```
-PIP_USER=0 .venv/bin/pip install -e ".[dev,notebook]"   # ~/.pip/pip.conf の user=true を回避
-.venv/bin/python scripts/make_figures.py                # 図と数値を再生成
-typst compile docs/main.typ                             # この PDF
-.venv/bin/pytest                                        # 物理モデルのテスト
-```
-
-= 付録
-
-== 記号
+#heading(numbering: none)[付録 A　記号]
 
 #table(
   columns: (auto, 1fr, auto),
-  stroke: none,
-  inset: (x: 6pt, y: 3pt),
-  table.hline(stroke: 0.6pt),
-  [*記号*], [*意味*], [*単位*],
-  table.hline(stroke: 0.4pt),
+  toprule,
+  [記号], [意味], [単位],
+  midrule,
   [$n, omega$], [回転数（$omega = 2 pi n$）], [rev/s, rad/s],
   [$D, A$], [プロペラ直径、円板面積], [m, m²],
   [$C_T, C_P$], [推力係数、パワー係数（$n$ 基準）], [—],
-  [$K_v, K_t, K_m$], [速度定数、トルク定数 $= 1\/K_v$、モータ定数 $K_t\/sqrt(R)$], [rad/s/V, N·m/A, N·m/√W],
-  [$R, I_0$], [巻線線間抵抗、無負荷電流], [Ω, A],
+  [$K_v, K_t, K_m$], [速度定数、トルク定数、モータ定数], [rad/s/V, N·m/A, N·m/√W],
+  [$R, I_0$], [巻線の線間抵抗、無負荷電流], [Ω, A],
   [$d$], [ESC の duty], [—],
-  [$V_"set", R_s$], [電源設定電圧、電源〜ESC 間の直列抵抗], [V, Ω],
-  [$V_"in", I_"in"$], [ESC 入力（スタンドが測る電気量）], [V, A],
-  [$V_m, I_m$], [モータ端子の平均電圧、モータ（相）電流], [V, A],
-  table.hline(stroke: 0.6pt),
+  [$V_"set", R_s$], [電源の設定電圧、電源から ESC までの直列抵抗], [V, Ω],
+  [$V_"in", I_"in"$], [ESC の入力電圧・電流（スタンドが測る量）], [V, A],
+  [$V_m, I_m$], [モータ端子の平均電圧、モータ電流], [V, A],
+  botrule,
 )
 
-== 参考文献・データ
+#heading(numbering: none)[付録 B　ソフトウェア]
 
+本書の数値と図はすべて `scripts/make_figures.py` が `src/propmotor` のモデルから生成したものである。プロペラデータの読み込みは
+`propeller.py`、モータ・ESC・電源のモデルは `motor.py`、`esc.py`、`source.py`、@eq:duty による運転点の計算は `system.py`、
+@sec:select の判定と選定マップは `selection.py` にある。候補の追加は `src/propmotor/data/catalog/*.toml` に記入し、
+`notebooks/selection.py` を VS Code でセルごとに実行すると、図を見ながら候補を比較できる。
+
+#heading(numbering: none)[参考文献]
+
+#set enum(numbering: "[1]")
 + M. Drela, "First-Order DC Electric Motor Model," MIT Aero & Astro, 2007.
-+ J. G. Leishman, _Principles of Helicopter Aerodynamics_, 2nd ed., Cambridge Univ. Press, 2006（運動量理論、FM）.
-+ J. B. Brandt, R. W. Deters, G. K. Ananda, O. D. Dantsker, M. S. Selig, UIUC Propeller Data Site, Vol. 1, https://m-selig.ae.illinois.edu/props/propDB.html
-+ APC Propellers, Performance data `PER3_8x38SF.dat`; RPM limits, https://www.apcprop.com/technical-information/rpm-limits
++ J. G. Leishman, _Principles of Helicopter Aerodynamics_, 2nd ed., Cambridge University Press, 2006.
++ J. B. Brandt, R. W. Deters, G. K. Ananda, O. D. Dantsker, M. S. Selig, UIUC Propeller Data Site, Vol. 1.
++ APC Propellers, performance data `PER3_8x38SF.dat` and RPM limits.
 + Tyto Robotics, Series 1585 Thrust Stand Datasheet, V2.4, 2024.
-+ 菊水電子工業, PWR-01 シリーズ 取扱説明書.
++ 菊水電子工業, PWR-01 シリーズ 取扱説明書 IB035086.
