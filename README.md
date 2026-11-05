@@ -6,6 +6,8 @@ Includes the physics write-up (typst) and the Python models behind it.
 
 - Explanation (Japanese): `docs/main.typ` → `docs/main.pdf` (physics and selection)
 - Safety / power-chain design (Japanese): `docs/safety.typ` → `docs/safety.pdf` (regeneration, E-stop, BOM)
+- Wiring review and source links (Japanese): [docs/wiring_review.md](docs/wiring_review.md)
+  (Tyto terminals, optical RPM, J1 assembly, and the outstanding E-stop minimum-load qualification)
 - Interactive selection: `notebooks/selection.py` (VS Code, run `# %%` cells)
 - Library: `src/propmotor/` (propeller data, motor/ESC/source models, operating-point solver,
   selection checks, plots)
@@ -35,7 +37,7 @@ Without them typst and matplotlib fall back to other fonts.
 
 ```bash
 .venv/bin/python scripts/make_figures.py   # figures -> docs/figures, numbers -> docs/generated/*.json
-.venv/bin/python scripts/make_wiring.py    # wiring diagram (photo collage) -> docs/figures/wiring.png
+.venv/bin/python scripts/make_wiring.py    # wiring + J1 detail -> docs/figures/{wiring,estop_wiring}.{png,svg}
 typst compile docs/main.typ
 typst compile docs/safety.typ
 ```
