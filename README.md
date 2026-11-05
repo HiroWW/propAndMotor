@@ -4,7 +4,8 @@ Selection of the power-supply voltage, motor and ESC for a static (hover) thrust
 **APC 8×3.8SF** propeller on a **Tyto Robotics 1585** stand powered by a **Kikusui PWR401L**.
 Includes the physics write-up (typst) and the Python models behind it.
 
-- Explanation (Japanese): `docs/main.typ` → `docs/main.pdf`
+- Explanation (Japanese): `docs/main.typ` → `docs/main.pdf` (physics and selection)
+- Safety / power-chain design (Japanese): `docs/safety.typ` → `docs/safety.pdf` (regeneration, E-stop, BOM)
 - Interactive selection: `notebooks/selection.py` (VS Code, run `# %%` cells)
 - Library: `src/propmotor/` (propeller data, motor/ESC/source models, operating-point solver,
   selection checks, plots)
@@ -22,6 +23,7 @@ PIP_USER=0 .venv/bin/pip install -e ".[dev,notebook]"   # PIP_USER=0: ~/.pip/pip
 ```bash
 .venv/bin/python scripts/make_figures.py   # figures -> docs/figures, numbers -> docs/generated/*.json
 typst compile docs/main.typ
+typst compile docs/safety.typ
 ```
 
 ## Data sources
