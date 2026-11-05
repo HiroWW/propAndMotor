@@ -376,46 +376,51 @@ $ -I_m R_s thin d^2 + (V_"set" - I_q R_s) thin d - (V_m + I_m R_"on") = 0 $ <eq:
 #if cands.len() == 0 [
   #note[候補モータのカタログ（`src/propmotor/data/catalog/motors.toml`）を作成中。作成後 `make_figures.py` を再実行するとこの節に表と図が入る。]
 ] else [
-  市販品から集めた 11 個のモータ（調査 2026-11、カタログ値）と 7 個の ESC を評価した。各モータには、必須条件をすべて満たし、
-  推奨条件の違反が最少で、電流定格が最小の ESC を組み合わせている（大きすぎる ESC は電流分解能とコストの点で不利なだけ）。
-  #let ok(c) = if c.feasible { if c.warnings.len() == 0 { "成立" } else { "成立(注意)" } } else { "不成立" }
+  *国内で購入できる*（Amazon.co.jp、国内ラジコン通販、メーカー日本向け通販）ことを条件に、モータ #val.n_motors 個・ESC #val.n_escs 個を評価した
+  （調査 2026-11、カタログ値。はんだ付けが必要な基板型 ESC は除外）。各モータには、必須条件をすべて満たし、推奨条件の違反が最少で、
+  電流定格が最小の ESC を組み合わせている（大きすぎる ESC は電流分解能とコストの点で不利なだけ）。
+  #let yen(x) = if x == none { "—" } else { "¥" + str(x) }
   #figure(
-    text(size: 8.5pt, table(
-      columns: 10,
-      align: (right, left, right, right, right, right, right, right, right, left),
+    text(size: 8.3pt, table(
+      columns: 9,
+      align: (right, left, right, right, right, right, right, right, left),
       stroke: none,
-      inset: (x: 3.5pt, y: 2.6pt),
+      inset: (x: 3.2pt, y: 2.6pt),
       table.hline(stroke: 0.6pt),
-      [*No.*], [*モータ*], [*Kv*], [*R* \[Ω\]], [*I₀* \[A\]], [*推奨 V*], [*duty*], [*$I_m$* \[A\]], [*損失* \[W\]], [*組み合わせ ESC*],
+      [*No.*], [*モータ（入手先）*], [*Kv*], [*R* \[Ω\]], [*I₀* \[A\]], [*推奨 V*], [*$I_m$* \[A\]], [*損失* \[W\]], [*組み合わせ ESC*],
       table.hline(stroke: 0.4pt),
       ..cands.enumerate().map(((i, c)) => (
-        [#(i + 1)], [#c.motor], [#f(c.kv, d: 0)], [#f(c.r_ohm, d: 3)], [#f(c.i0_a, d: 2)], [#f(c.v_set, d: 1)],
-        [#pct(c.duty_nominal)], [#f(c.i_motor, d: 1)], [#f(c.p_motor_loss, d: 1)], [#c.esc.replace("Hobbywing ", "").replace("Holybro ", "")],
+        [#(i + 1)], [#c.motor \ #text(size: 7pt, fill: rgb("#52514e"))[#c.jp_shop #yen(c.price_jpy)]], [#f(c.kv, d: 0)],
+        [#f(c.r_ohm, d: 3)], [#f(c.i0_a, d: 2)], [#f(c.v_set, d: 1)], [#f(c.i_motor, d: 1)], [#f(c.p_motor_loss, d: 1)],
+        [#c.esc.replace("Hobbywing ", "")],
       )).flatten(),
       table.hline(stroke: 0.6pt),
     )),
-    caption: [候補一覧（No. は選定マップの番号）。duty は公称モデル、$I_m$ と損失（銅損＋無負荷損）は設計モデル・巻線 60 °C、上限回転時。],
+    caption: [国内入手可能な候補（No. は選定マップの番号）。$I_m$ と損失（銅損＋無負荷損）は設計モデル・巻線 60 °C、上限回転時。],
   )
-  #fig("figures/compatibility.svg")[モータ × ESC の適合表。Skywalker 20A（2–3S）は電圧上限（12.6 V × 0.9）のため Kv 1100 以上のモータとしか組めない。「注意」は回生（ブレーキ/フリーホイール）を OFF にできない、または不明な ESC。]
+  #fig("figures/compatibility.svg")[モータ × ESC の適合表（国内入手可能品）。Skywalker 20A（2–3S）は電圧上限（12.6 V × 0.9）のため Kv 1150 のモータとしか組めない。「注意」は回生（ブレーキ/フリーホイール）を OFF にできるか未確認、またはモータ側コネクタの付いていない ESC。]
   #fig("figures/candidates.svg")[候補ごとの主要指標（上限回転。電圧・電流・損失は設計モデル、効率は公称モデル）。縦線は電流定格の 70 %。]
   #fig("figures/candidates_power.svg", w: 78%)[候補ごとの、上限回転での電力の行き先（公称モデル）。]
 ]
 
-== 推奨構成（暫定）と、判断の根拠 <sec:recommend>
+== 推奨構成と、判断の根拠 <sec:recommend>
 
 どの候補も必須条件は満たす（この試験は 2212 級には軽い負荷である）。差が出るのは次の二次的な観点で、ここは人の判断になる。
 
-+ *モデルの裏付け*: 同じプロペラでのメーカー実測があると、試験前に予測を検証でき、試験結果の異常にも気づきやすい。
++ *回生の扱い*: PWR401L は逆電流を吸えないので、ブレーキとアクティブフリーホイールを *OFF にできることが取扱説明書で確認できる* ESC を選ぶ
+  （Hobbywing Skywalker V2、OK模型 TAHMAZO R-30）。詳細は `safety.pdf`。
++ *はんだ付けなしで組める*: ESC のモータ側に 3.5 mm バレットが付いていて、モータ側も 3.5 mm バレットなら挿すだけ。ESC の電源側が裸線でも、レバー式コネクタ（WAGO 221 等）で XT60 付きケーブルにつなげる。
 + *発熱の余裕*: モータ定数 $K_m$ が大きいほど損失が小さく、長いスイープでも巻線温度とその変化（$R$ の変化）が小さい。
-+ *回生の扱い*: ブレーキ・フリーホイールを OFF にできる ESC（Hobbywing Skywalker/FlyFun、AM32）を選ぶ。
-+ *取付*: 1585 は M2–M4、ピッチ 56 mm 以下。候補の多くは 16×19 mm・M3 で問題ない。プロペラは M5 アダプタ＋5 mm リング。
++ *取付*: 1585 は M2–M4、ピッチ 56 mm 以下。候補は 16×16 または 16×19 mm・M3 で問題ない。プロペラはモータのアダプタ軸径に合う APC SF リング（LPARM12SF: 3/5/6 mm）。
 + *入手性・価格*。
 
 #key[
-  *暫定の推奨:* *#ref.motor* ＋ *#ref.esc*、電源 *#f(ref.v_set, d: 1) V*（成立範囲 #f(ref.v_band.at(0), d: 1)–#f(ref.v_band.at(1), d: 1) V）。
-  - 8×3.8SF でのメーカー実測（11.1 V で 8,279 rpm、6.47 A、498 g）があり、モデルと 3 % 以内で一致している。
+  *推奨:* *#ref.motor*（#ref.motor_shop、¥#ref.motor_price_jpy）＋ *#ref.esc*（#ref.esc_shop、¥#ref.esc_price_jpy）、電源 *#f(ref.v_set, d: 1) V*（成立範囲 #f(ref.v_band.at(0), d: 1)–#f(ref.v_band.at(1), d: 1) V）。
+  - 国内候補で $K_m$ が最大級（#f(ref.km * 1000, d: 1) mN·m/√W、2316 サイズ）で、上限回転のモータ損失が小さい。
+  - モータの 3.5 mm バレットが ESC のモータ側バレットにそのまま挿さる。ESC は取説でブレーキ Disabled（出荷時）・アクティブフリーホイール OFF が設定できる。
   - 上限回転でのモータ電流 #f(ref.design.i_motor, d: 1) A（設計モデル）、電源電流 #f(ref.nominal.i_in, d: 1) A、入力 #f(ref.nominal.p_in, d: 0) W。PWR401L・1585 の定格に対して十分小さい。
-  - 対抗馬: SunnySky X2216-880（$K_m$ 最大で損失最小、安価。取付寸法が非公表）、SunnySky X2212-980（安価、メーカーが APC 8038 を推奨）。
+  - 対抗馬: SunnySky X2216-880（$K_m$ 最大、Amazon。類似品に注意）、T-Motor AS2312-1150 ＋ Skywalker 20A V2（約 10 V。3S の ESC で済む）。
+  - 要確認: モータ付属のプロペラアダプタの軸径（→ APC リングの径）。ESC のプログラムは別売の PG-CARD（セキド ¥1,760）が楽。
 ]
 
 #fig("figures/power_breakdown.svg")[基準構成（#ref.motor, #f(ref.v_set, d: 1) V）の上限回転での電力の行き先。]

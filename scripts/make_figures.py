@@ -35,7 +35,8 @@ GEN = ROOT / "docs" / "generated"
 ROOM = dict(temp_c=20.0, pressure_pa=101_325.0, rel_humidity=0.5)
 PROP_MASS_KG = 0.0071  # APC 8x3.8SF: 0.25 oz (APC product page)
 ROTOR = dict(bell_mass_kg=0.020, bell_radius_m=0.014)  # 22xx outrunner bell, approx.
-REFERENCE_MOTOR = "Scorpion SII-2212-885"  # provisional recommendation (see docs, section 6)
+REFERENCE_MOTOR = "Dualsky ECO 2316C-V2 (880)"  # recommendation (see docs/main.typ, section 6)
+JP_ONLY = True  # candidates restricted to parts purchasable in Japan
 ESC_LINES = [("2S ESC (7.6 V)", 8.4 * 0.9), ("3S (11.3 V)", 12.6 * 0.9), ("4S (15.1 V)", 16.8 * 0.9),
              ("6S (22.7 V)", 25.2 * 0.9)]
 
@@ -77,7 +78,7 @@ def main() -> None:
 
     # ---- candidates ----------------------------------------------------------
     try:
-        motors, escs = load_motors(), load_escs()
+        motors, escs = load_motors(jp_only=JP_ONLY), load_escs(jp_only=JP_ONLY)
     except FileNotFoundError:
         motors, escs = [], []
     generic = pm.generic_esc(v_max=25.2, i_cont_a=30.0, name="汎用ESC 30A/6S")
@@ -169,8 +170,13 @@ def main() -> None:
                 "p_source", "p_cu", "p_noload", "p_esc", "p_lead", "eta_motor", "eta_drive"]
         return {k: r(op[k], 4) for k in keys}
 
+    values["n_motors"] = len(motors)
+    values["n_escs"] = len(escs)
     values["reference"] = {
-        "motor": ref.name, "kv": ref.kv, "r_ohm": ref.r_ohm, "i0_a": ref.i0_a, "km": r(ref.km, 4),
+        "motor": ref.name, "kv": ref.kv, "motor_shop": ref.meta.get("jp_shop", "") if ref.meta else "",
+        "motor_price_jpy": ref.meta.get("price_jpy") if ref.meta else None,
+        "esc_shop": ref_ev.esc.meta.get("jp_shop", "") if ref_ev.esc.meta else "",
+        "esc_price_jpy": ref_ev.esc.meta.get("price_jpy") if ref_ev.esc.meta else None, "r_ohm": ref.r_ohm, "i0_a": ref.i0_a, "km": r(ref.km, 4),
         "kt": r(ref.kt, 5), "esc": ref_ev.esc.name, "v_set": ref_ev.v_set, "v_band": [r(x, 2) for x in ref_ev.v_band],
         "nominal": op_summary(ref_ev.nominal), "design": op_summary(ref_ev.design), "low": op_summary(ref_ev.low),
         "max_rpm_nominal": r(pm.max_rpm(dts[0]), 0), "max_rpm_design": r(pm.max_rpm(dts[1]), 0),
@@ -188,6 +194,9 @@ def main() -> None:
             "failed": [c.name for c in e.checks if c.hard and not c.ok], "url": e.motor.url, "price": e.motor.price,
             "esc_price": e.esc.price, "cells": e.motor.meta.get("cells", ""), "stator": e.motor.meta.get("stator", ""),
             "adapter": e.motor.meta.get("prop_adapter", ""), "mount": e.motor.mount,
+            "jp_shop": e.motor.meta.get("jp_shop", ""), "price_jpy": e.motor.meta.get("price_jpy"),
+            "esc_jp_shop": e.esc.meta.get("jp_shop", ""), "esc_price_jpy": e.esc.meta.get("price_jpy"),
+            "esc_wiring": e.esc.meta.get("wiring", ""), "motor_wiring": e.motor.meta.get("wiring", ""),
         })
     (GEN / "candidates.json").write_text(json.dumps(rows, ensure_ascii=False, indent=1))
     (GEN / "values.json").write_text(json.dumps(values, ensure_ascii=False, indent=1, default=float))

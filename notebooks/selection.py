@@ -53,9 +53,12 @@ plt.show()
 # %% [markdown]
 # ## 3. 候補を一括評価
 # `src/propmotor/data/catalog/motors.toml`, `escs.toml` に候補を追加すればここに反映される。
+# JP_ONLY=True で国内入手可能品(jp_available = true)だけに絞る。はんだ付けが必要な基板型 ESC は既定で除外。
 
 # %%
-motors, escs = load_motors(), load_escs()
+JP_ONLY = True
+REFERENCE = "Dualsky ECO 2316C-V2 (880)"
+motors, escs = load_motors(jp_only=JP_ONLY), load_escs(jp_only=JP_ONLY)
 evals = [best_esc(m, escs, spec, uiuc, design) for m in motors]
 for i, ev in enumerate(evals, 1):
     flag = "成立" if ev.feasible else "不成立"
@@ -73,7 +76,7 @@ plt.show()
 # 色帯 = 成立領域。黒い縦棒 = 各候補の成立電圧範囲、白抜き点 = 推奨電圧。番号は上の一覧の番号。
 
 # %%
-ref = next(e for e in evals if e.motor.name == "Scorpion SII-2212-885")
+ref = next(e for e in evals if e.motor.name == REFERENCE)
 km = kv_voltage_map(ref.motor, pm.generic_esc(), spec, uiuc, design, kv=np.linspace(400, 2000, 41),
                     v=np.linspace(4, 40, 73))
 cands = [(str(i), e.motor.kv, e.v_band[0], e.v_set, e.v_band[1]) for i, e in enumerate(evals, 1)]
@@ -89,9 +92,11 @@ plt.show()
 import ipywidgets as W  # noqa: E402
 from IPython.display import display  # noqa: E402
 
-motor_dd = W.Dropdown(options=[(m.name, i) for i, m in enumerate(motors)], value=2, description="モータ")
-esc_dd = W.Dropdown(options=[(e.name, i) for i, e in enumerate(escs)], value=1, description="ESC")
-v_sl = W.FloatSlider(value=13.2, min=5, max=30, step=0.1, description="電源 [V]", continuous_update=False)
+motor_dd = W.Dropdown(options=[(m.name, i) for i, m in enumerate(motors)],
+                      value=[m.name for m in motors].index(ref.motor.name), description="モータ")
+esc_dd = W.Dropdown(options=[(e.name, i) for i, e in enumerate(escs)],
+                    value=[e.name for e in escs].index(ref.esc.name), description="ESC")
+v_sl = W.FloatSlider(value=ref.v_set, min=5, max=30, step=0.1, description="電源 [V]", continuous_update=False)
 out = W.Output()
 
 
@@ -118,11 +123,11 @@ update()
 # ## 6. 自作パラメータで試す(購入後に測った Kv, R, I0 を入れる)
 
 # %%
-kv_sl = W.FloatSlider(value=885, min=400, max=2000, step=5, description="Kv", continuous_update=False)
-r_sl = W.FloatSlider(value=0.151, min=0.02, max=0.5, step=0.001, readout_format=".3f", description="R [Ω]",
+kv_sl = W.FloatSlider(value=ref.motor.kv, min=400, max=2000, step=5, description="Kv", continuous_update=False)
+r_sl = W.FloatSlider(value=ref.motor.r_ohm, min=0.02, max=0.5, step=0.001, readout_format=".3f", description="R [Ω]",
                      continuous_update=False)
-i0_sl = W.FloatSlider(value=0.41, min=0.1, max=2.0, step=0.01, description="I0 [A]", continuous_update=False)
-v2_sl = W.FloatSlider(value=13.2, min=5, max=30, step=0.1, description="電源 [V]", continuous_update=False)
+i0_sl = W.FloatSlider(value=ref.motor.i0_a, min=0.1, max=2.0, step=0.01, description="I0 [A]", continuous_update=False)
+v2_sl = W.FloatSlider(value=ref.v_set, min=5, max=30, step=0.1, description="電源 [V]", continuous_update=False)
 out2 = W.Output()
 
 
