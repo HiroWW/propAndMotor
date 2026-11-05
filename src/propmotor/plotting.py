@@ -554,3 +554,33 @@ def fig_compatibility(matrix, motors, escs):
         sp.set_visible(False)
     ax.set_title("モータ × ESC の適合 (推奨電圧で評価。NG=必須条件違反、注意=推奨条件違反)")
     return fig
+
+
+
+def fig_regen_transient(results, v_limit: float, ramp_sweep=None, title_note: str = ""):
+    """Left: bus voltage after an abrupt throttle drop for several protections.
+    Right (optional): peak bus voltage versus throttle ramp-down time (no protection).
+
+    results: list of TransientResult; ramp_sweep: (ramp_s array, v_peak array)
+    """
+    use_style()
+    n = 2 if ramp_sweep is not None else 1
+    fig, axs = plt.subplots(1, n, figsize=(5.2 * n, 3.4), constrained_layout=True, squeeze=False)
+    ax = axs[0, 0]
+    for r, c in zip(results, SERIES):
+        ax.plot(r.t * 1000, r.v_bus, color=c, label=f"{r.protection.name} (最大 {r.v_peak:.1f} V)")
+    ax.axhline(v_limit, color=STATUS["critical"], lw=1.1)
+    ax.text(ax.get_xlim()[1] if False else results[0].t[-1] * 1000, v_limit, "ESC 定格上限 ", ha="right", va="bottom",
+            fontsize=8, color=INK)
+    ax.set(title="スロットル急減時の母線電圧", xlabel="時間 [ms]", ylabel="[V]", ylim=(0, None))
+    ax.legend(loc="upper right", fontsize=7.5)
+    if ramp_sweep is not None:
+        ax2 = axs[0, 1]
+        ramp, vp = ramp_sweep
+        ax2.plot(np.asarray(ramp) * 1000, vp, color=SERIES[0])
+        ax2.axhline(v_limit, color=STATUS["critical"], lw=1.1)
+        ax2.set(title="絞る速さと母線電圧の最大値 (対策なし)", xlabel="スロットルを下げきるまでの時間 [ms]",
+                ylabel="[V]", ylim=(0, None))
+    if title_note:
+        fig.suptitle(title_note, x=0.01, ha="left", fontsize=8.5, color=INK2, fontweight="normal")
+    return fig

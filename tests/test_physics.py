@@ -102,3 +102,20 @@ def test_stand_uncertainty_floor():
 
     # 0.01 N m torque -> +-(0.5% + 0.001) = 10.5 %
     assert TYTO_1585.torque_uncertainty(0.01) / 0.01 == pytest.approx(0.105)
+
+
+def test_regen_transient_physics(props, motor):
+    """Abrupt drop with complementary PWM pumps the bus; diode freewheeling or coasting does not."""
+    from propmotor.transient import BusProtection, throttle_drop
+
+    uiuc, _ = props
+    dt = pm.Drivetrain(prop=uiuc, motor=motor, esc=pm.generic_esc(), source=pm.DCSource("psu", 12.0, 0.03, 10.0), rho=1.2)
+    d0 = float(pm.required_duty(dt, 8000))
+    j = 2e-5
+    hot = throttle_drop(dt, j, BusProtection("none"), d0, 0.05, t_end=0.3)
+    off = throttle_drop(dt, j, BusProtection("diode", complementary_pwm=False), d0, 0.05, t_end=0.3)
+    coast = throttle_drop(dt, j, BusProtection("none"), d0, 0.0, t_end=0.3, zero_throttle="coast")
+    clamp = throttle_drop(dt, j, BusProtection("clamp", v_clamp=13.5), d0, 0.05, t_end=0.3)
+    assert hot.v_peak > 20.0
+    assert off.v_peak <= 12.01 and coast.v_peak <= 12.01
+    assert clamp.v_peak < 14.0
