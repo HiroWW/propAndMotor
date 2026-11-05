@@ -1,0 +1,260 @@
+# Candidate motors for the APC 8x3.8SF static test (collected 2026-11, nominal datasheet values).
+# r_ohm: winding resistance as published (line-to-line unless noted). i0_a at i0_ref_v.
+# i_max_a: the manufacturer's max current; NOTE the duration (often 30-180 s, i.e. not truly continuous).
+# Values are nominal: measure Kv, R (4-wire, line-to-line) and I0 on the stand after purchase.
+
+[[motor]]
+label = "Cobra CM-2213/36 (700)"
+manufacturer = "Cobra (Innov8tive Designs)"
+model = "CM-2213/36 Kv700"
+kv = 700
+r_ohm = 0.259
+r_note = "phase-to-phase (stated); 0.389 ohm per phase (delta)"
+i0_a = 0.28
+i0_ref_v = 12.0
+i_max_a = 11
+i_max_note = "max continuous, duration not stated"
+p_max_w = 120
+cells = "3-4S"
+mass_g = 68.6
+stator = "22x13"
+poles = 14
+shaft_mm = 3.17
+prop_adapter = "bolt-on, M5x0.8"
+mount = "16x19 mm, M3"
+price = "USD 28.99"
+url = "https://innov8tivedesigns.com/cobra-cm-2213-36-brushless-motor-kv-740.html"
+notes = "Naming inconsistent (CM-2213/34 vs /36). Sample-motor Kv measured 670 @10 V. I0 0.26 A@10 V .. 0.33 A@16 V."
+
+[[motor]]
+label = "AXI 2212/34 V3 (710)"
+manufacturer = "AXI (Model Motors)"
+model = "2212/34 GOLD LINE V3"
+kv = 710
+r_ohm = 0.207
+r_note = "'internal resistance', convention not stated; 2010 catalogue gave 0.345"
+i0_a = 0.4
+i0_ref_v = 10.0
+i0_note = "test voltage not stated on V3 page"
+i_max_a = 12
+i_max_note = "60 s"
+p_max_w = 150
+cells = "2-3S"
+mass_g = 56
+stator = "22x12"
+poles = 14
+shaft_mm = 3.17
+prop_adapter = "radial mount set with prop adaptor"
+mount = "16/19 mm, M3"
+price = "EUR 87"
+url = "https://www.modelmotors.cz/product/detail/352/"
+notes = "R differs 1.7x between V3 page and 2010 catalogue."
+
+[[motor]]
+label = "Scorpion SII-2212-885"
+manufacturer = "Scorpion"
+model = "SII-2212-885KV V2"
+kv = 885
+r_ohm = 0.151
+r_note = "Rm, convention not stated"
+i0_a = 0.41
+i0_ref_v = 10.0
+i_max_a = 13
+i_max_note = "max continuous, duration not stated"
+p_max_w = 140
+cells = "2-4S"
+mass_g = 58.0
+stator = "22x12"
+poles = 14
+shaft_mm = 2.98
+prop_adapter = "threaded M5x0.8 + cross mount"
+mount = "16x19 mm, M3"
+price = "USD 49.99"
+url = "https://www.scorpionsystem.com/catalog/aeroplane/motors_1/s-22_v2/SII-2212-885KV/"
+notes = "Manufacturer test with APC 8x3.8-SF @ 11.1 V: 8279 rpm, 6.47 A, 71.8 W, 498 g."
+
+[[motor]]
+label = "SunnySky X2216-880"
+manufacturer = "SunnySky"
+model = "X2216-III KV880"
+kv = 880
+r_ohm = 0.089
+r_note = "phase-to-phase (official)"
+i0_a = 0.5
+i0_ref_v = 10.0
+i_max_a = 30
+i_max_note = "30 s"
+p_max_w = 440
+cells = "3-4S"
+mass_g = 67.5
+stator = "22x16"
+poles = 14
+shaft_mm = 3.175
+prop_adapter = "bolt-on adapter + X-mount"
+mount = "not published"
+price = "USD 24.99"
+url = "https://sunnyskyusa.com/products/sunnysky-x2216"
+notes = "Official CN site 30 A/440 W vs US distributor 32 A/450 W."
+
+[[motor]]
+label = "AXI 2212/26 V3 (920)"
+manufacturer = "AXI (Model Motors)"
+model = "2212/26 GOLD LINE V3"
+kv = 920
+r_ohm = 0.124
+r_note = "'internal resistance'; 2010 catalogue gave 0.210"
+i0_a = 0.45
+i0_ref_v = 8.0
+i0_note = "V3 page no voltage; 2010 catalogue at 8 V"
+i_max_a = 14
+i_max_note = "60 s"
+p_max_w = 138
+cells = "2-3S"
+mass_g = 56
+stator = "22x12"
+poles = 14
+shaft_mm = 3.17
+prop_adapter = "radial mount set with prop adaptor"
+mount = "16/19 mm, M3"
+price = "EUR 87"
+url = "https://www.modelmotors.cz/product/detail/348/"
+notes = "Max efficiency 82 % at 6-10 A (AXI)."
+
+[[motor]]
+label = "Scorpion SII-2212-960"
+manufacturer = "Scorpion"
+model = "SII-2212-960KV V2"
+kv = 960
+r_ohm = 0.139
+r_note = "Rm, convention not stated"
+i0_a = 0.51
+i0_ref_v = 10.0
+i_max_a = 13
+i_max_note = "max continuous, duration not stated"
+p_max_w = 140
+cells = "2-4S"
+mass_g = 58.0
+stator = "22x12"
+poles = 14
+shaft_mm = 2.98
+prop_adapter = "threaded M5x0.8 + cross mount"
+mount = "16x19 mm, M3"
+price = "USD 20 (sale) / 49.99"
+url = "https://www.scorpionsystem.com/catalog/aeroplane/motors_1/s-22_v2/SII-2212-960KV/"
+notes = "Manufacturer test with APC 8x3.8-SF @ 11.1 V: 8924 rpm, 8.18 A, 90.8 W, 580.3 g."
+
+[[motor]]
+label = "SunnySky X2212-980"
+manufacturer = "SunnySky"
+model = "X2212-III KV980"
+kv = 980
+r_ohm = 0.092
+r_note = "phase-to-phase (official)"
+i0_a = 0.6
+i0_ref_v = 10.0
+i_max_a = 26
+i_max_note = "30 s"
+p_max_w = 385
+cells = "3-4S"
+mass_g = 57
+stator = "22x12"
+poles = 14
+shaft_mm = 3.175
+prop_adapter = "bolt-on adapter + X-mount"
+mount = "not published"
+price = "USD 20.99"
+url = "https://sunnyskyusa.com/products/sunnsky-x2212"
+notes = "APC 8038 recommended. Test @14.8 V: 7629 rpm 4.0 A 59.2 W 400 g; 8440 rpm 5.4 A 79.9 W 500 g (tables contain typos)."
+
+[[motor]]
+label = "Hacker A20-30M EVO (980)"
+manufacturer = "Hacker"
+model = "A20-30M EVO"
+kv = 980
+r_ohm = 0.174
+r_note = "Ri, convention not stated"
+i0_a = 0.6
+i0_ref_v = 8.4
+p_max_w = 150
+p_max_note = "15 s"
+cells = "3S"
+mass_g = 42
+poles = 14
+shaft_mm = 3.0
+prop_adapter = "prop adapter included"
+mount = "16/19 mm, M3 (max screw depth 3 mm)"
+price = "EUR 57.50"
+url = "https://hoelleinshop.com/en/products/hacker-a20-30m-evo-980-u-volt"
+notes = "No continuous current rating; Hacker recommends a 12-20 A ESC; rated to 65 degC."
+
+[[motor]]
+label = "Hacker A20-26M EVO (1130)"
+manufacturer = "Hacker"
+model = "A20-26M EVO"
+kv = 1130
+r_ohm = 0.117
+r_note = "Ri, convention not stated"
+i0_a = 0.7
+i0_ref_v = 8.4
+p_max_w = 150
+p_max_note = "15 s"
+cells = "3S"
+mass_g = 42
+poles = 14
+shaft_mm = 3.0
+prop_adapter = "prop adapter included"
+mount = "16/19 mm, M3 (max screw depth 3 mm)"
+price = "EUR 57.50"
+url = "https://hoelleinshop.com/en/products/hacker-a20-26m-evo-1130-u-volt"
+notes = ""
+
+[[motor]]
+label = "T-Motor AT2312-1150"
+manufacturer = "T-Motor"
+model = "AT2312 Long Shaft KV1150"
+kv = 1150
+r_ohm = 0.075
+r_note = "internal resistance, convention not stated"
+i0_a = 0.85
+i0_ref_v = 10.0
+i_max_a = 25
+i_max_note = "peak, 180 s"
+p_max_w = 350
+cells = "2-4S"
+mass_g = 60
+poles = 14
+shaft_mm = 4.0
+prop_adapter = "collet (M6) and bolt-on (M6) adapters"
+mount = "16x19 mm, M3"
+price = "USD 34.99"
+url = "https://store.tmotor.com/goods.php?id=788"
+notes = "M6 adapter: APC SF rings go to 6 mm (LPAR18SF / LPARM12SF)."
+
+[[motor]]
+label = "Scorpion SII-2212-1400"
+manufacturer = "Scorpion"
+model = "SII-2212-1400KV V2"
+kv = 1400
+r_ohm = 0.088
+r_note = "Rm (chart says 0.091)"
+i0_a = 0.73
+i0_ref_v = 10.0
+i_max_a = 25
+i_max_note = "max continuous, duration not stated"
+p_max_w = 370
+cells = "2-4S"
+mass_g = 58.0
+stator = "22x12"
+poles = 14
+shaft_mm = 2.98
+prop_adapter = "threaded M5x0.8 + cross mount"
+mount = "16x19 mm, M3"
+price = "USD 49.99"
+url = "https://scorpionsystem.com/catalog/aeroplane/motors_1/s-22_v2/SII-2212-1400KV"
+notes = ""
+
+# Excluded from modelling: no official R / I0 (retailer I0 1.6 A @10 V is implausible for 22x13).
+# [[motor]]
+# label = "EMAX MT2213-935"
+# kv = 935
+# url = "https://shop.emaxmodel.com/products/emax-mt2213-935kv-multicopter-brushless-motor"

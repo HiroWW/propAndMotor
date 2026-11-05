@@ -1,0 +1,79 @@
+# Independent manufacturer measurements with the APC 8x3.8 SF (used to validate the models).
+# throttle = "full": supply current ~ motor current. "partial": current is battery-side.
+# Air density not stated by the manufacturers (assume ~1.2 kg/m^3).
+
+[[test]]
+label = "Scorpion SII-2212-885 @11.1V"
+kv = 885
+r_ohm = 0.151
+i0_a = 0.41
+v_supply = 11.1
+throttle = "full"
+rpm = 8279
+current_a = 6.47
+power_w = 71.8
+thrust_g = 498
+url = "https://www.scorpionsystem.com/files/i2,223_data_chart.pdf"
+
+[[test]]
+label = "Scorpion SII-2212-960 @11.1V"
+kv = 960
+r_ohm = 0.139
+i0_a = 0.51
+v_supply = 11.1
+throttle = "full"
+rpm = 8924
+current_a = 8.18
+power_w = 90.8
+thrust_g = 580.3
+url = "https://www.scorpionsystem.com/files/i2,224_data_chart.pdf"
+
+[[test]]
+label = "Scorpion SII-2215-900 @11.1V"
+kv = 900
+r_ohm = 0.142
+i0_a = 0.52
+v_supply = 11.1
+throttle = "full"
+rpm = 8419
+current_a = 6.50
+power_w = 72.2
+url = "https://www.scorpionsystem.com/"
+
+[[test]]
+label = "Cobra C-2213/26 @11.1V"
+kv = 950
+r_ohm = 0.134
+i0_a = 0.45
+v_supply = 11.1
+throttle = "full"
+rpm = 8470
+current_a = 6.80
+power_w = 75.5
+url = "https://innov8tivedesigns.com/"
+
+[[test]]
+label = "SunnySky X2212-980 @14.8V (a)"
+kv = 980
+r_ohm = 0.092
+i0_a = 0.6
+v_supply = 14.8
+throttle = "partial"
+rpm = 7629
+current_a = 4.0
+power_w = 59.2
+thrust_g = 400
+url = "https://www.rcsunnysky.com/x-fixedwingseries/38.html"
+
+[[test]]
+label = "SunnySky X2212-980 @14.8V (b)"
+kv = 980
+r_ohm = 0.092
+i0_a = 0.6
+v_supply = 14.8
+throttle = "partial"
+rpm = 8440
+current_a = 5.4
+power_w = 79.9
+thrust_g = 500
+url = "https://www.rcsunnysky.com/x-fixedwingseries/38.html"

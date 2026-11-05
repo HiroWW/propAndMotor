@@ -1,0 +1,128 @@
+# Candidate ESCs (collected 2026-11). All accept standard servo PWM (the 1585 outputs 50 Hz, 1000-2000 us).
+# cells_min / cells: LiPo cell range; v_min = 3.0 V * cells_min, v_max = 4.2 V * cells_max.
+# regen_control: can active braking / active freewheeling (damped light, complementary PWM) be turned OFF?
+#   matters with a lab supply that cannot sink current (PWR401L).
+
+[[esc]]
+label = "Hobbywing Skywalker 20A V2"
+manufacturer = "Hobbywing"
+model = "Skywalker 20A V2"
+cells_min = 2
+cells = "2-3S"
+i_cont_a = 20
+i_burst_a = 40
+firmware = "proprietary (ARM M0)"
+pwm_input = true
+braking_configurable = true
+regen_note = "Brake: Disabled/Normal/Reverse; Active Freewheeling (DEO) On/Off (default On)"
+bec = "linear 5 V / 3 A"
+mass_g = 20
+price = "USD 14.99"
+url = "https://www.hobbywing.com/en/products/skywalker-v2-series274"
+notes = "Default throttle range 1100-1940 us: calibrate. Fixed-wing ESC, programmable by stick/LED card."
+
+[[esc]]
+label = "Hobbywing FlyFun 20A V5"
+manufacturer = "Hobbywing"
+model = "FlyFun 20A V5"
+cells_min = 2
+cells = "2-4S"
+i_cont_a = 20
+i_burst_a = 30
+firmware = "proprietary (ARM M4), DEO"
+pwm_input = true
+braking_configurable = true
+regen_note = "Freewheeling Enabled/Disabled; brake Disabled/Normal"
+bec = "switch 5.2 V / 2.5 A"
+mass_g = 13
+price = "USD 14.39-22"
+url = "https://www.hobbywingdirect.com/products/flyfun-v5-esc-2s-4s"
+notes = "Default throttle range 1100-1940 us: calibrate."
+
+[[esc]]
+label = "Hobbywing Skywalker 40A V2"
+manufacturer = "Hobbywing"
+model = "Skywalker 40A V2"
+cells_min = 3
+cells = "3-4S"
+i_cont_a = 40
+i_burst_a = 60
+firmware = "proprietary (ARM M0)"
+pwm_input = true
+braking_configurable = true
+regen_note = "Brake: Disabled/Normal/...; DEO On/Off"
+bec = "switch 5 V / 5 A"
+mass_g = 36
+price = ""
+url = "https://www.hobbywing.com/en/products/skywalker-v2-series274"
+notes = "Oversized for this test."
+
+[[esc]]
+label = "Hobbywing XRotor 20A"
+manufacturer = "Hobbywing"
+model = "XRotor 20A (30901005)"
+cells_min = 3
+cells = "3-4S"
+i_cont_a = 20
+i_burst_a = 30
+firmware = "proprietary; only timing adjustable"
+pwm_input = true
+braking_configurable = false
+regen_note = "not configurable / not published"
+bec = "none"
+mass_g = 14
+price = "USD 12.99"
+url = "https://www.hobbywingdirect.com/products/xrotor-20a-esc"
+notes = "Multirotor ESC; regen behaviour unknown."
+
+[[esc]]
+label = "T-Motor AIR 20A"
+manufacturer = "T-Motor"
+model = "AIR 20A"
+cells_min = 3
+cells = "3-4S"
+i_cont_a = 20
+i_burst_a = 30
+firmware = "proprietary"
+pwm_input = true
+braking_configurable = false
+regen_note = "not configurable / not published"
+bec = "none"
+mass_g = 21
+price = "USD 19.99"
+url = "https://store.tmotor.com/goods.php?id=367"
+notes = "Stock running out at some retailers."
+
+[[esc]]
+label = "Holybro BLHeli_S 20A"
+manufacturer = "Holybro"
+model = "BLHeli_S 20A (X500 V2 spare)"
+cells_min = 2
+cells = "2-4S"
+i_cont_a = 20
+i_burst_a = 30
+firmware = "BLHeli_S A-H-30"
+pwm_input = true
+braking_configurable = false
+regen_note = "damped light always on (regenerative); brake-on-stop configurable"
+bec = "none"
+price = "USD 13.99"
+url = "https://holybro.com/products/spare-parts-x500-v2-kit"
+notes = "Do NOT reflash to Bluejay (DShot only). 24 kHz fixed PWM."
+
+[[esc]]
+label = "Holybro Tekko32 F4 45A (AM32)"
+manufacturer = "Holybro"
+model = "Tekko32 F4 45A AM32"
+cells_min = 2
+cells = "2-6S"
+i_cont_a = 45
+firmware = "AM32"
+pwm_input = true
+braking_configurable = true
+regen_note = "complementary PWM on/off, brake-on-stop, zero-throttle coast mode"
+bec = "none"
+mass_g = 5.8
+price = "USD 23.99"
+url = "https://holybro.com/products/tekko32-f4-45a-esc"
+notes = "Bare FPV board (solder). Built-in current sensor; 330 uF/35 V cap included. PWM frequency 8-144 kHz configurable."
