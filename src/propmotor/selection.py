@@ -136,10 +136,14 @@ def evaluate(motor: Motor, esc: ESC, v_set: float | None, spec: TestSpec, prop_n
                     spec.esc_v_frac * esc.v_max, "V", note="回生・サージ分の余裕"))
     ch.append(Check("ESC 電流", op_d["i_motor"] <= spec.esc_i_frac * esc.i_cont_a, op_d["i_motor"],
                     spec.esc_i_frac * esc.i_cont_a, "A", note=f"定格{esc.i_cont_a:g} A の{spec.esc_i_frac:.0%}"))
-    if esc.braking_configurable is not None:
-        ch.append(Check("ESC 回生(ブレーキ/フリーホイール)をOFF可", bool(esc.braking_configurable),
-                        float(bool(esc.braking_configurable)), 1.0, "-", hard=False,
-                        note="PWR401L は逆電流を吸収できない"))
+    ch.append(Check("ESC 回生(ブレーキ/フリーホイール)をOFF可", esc.braking_configurable is True,
+                    float(esc.braking_configurable is True), 1.0, "-", hard=False,
+                    note="未確認" if esc.braking_configurable is None else "PWR401L は逆電流を吸収できない"))
+    mb = motor.meta.get("bullet_mm") if motor.meta else None
+    solder_free = esc.motor_bullet_mm is not None and (mb is None or abs(mb - esc.motor_bullet_mm) < 0.01)
+    ch.append(Check("はんだ付けなしで配線可", solder_free, float(solder_free), 1.0, "-", hard=False,
+                    note=("ESC モータ側にコネクタなし" if esc.motor_bullet_mm is None else
+                          ("モータ側バレット径を要確認" if mb is None else f"{mb:g} mm バレット同士"))))
     if esc.pwm_input is not None:
         ch.append(Check("ESC がサーボPWM入力対応", bool(esc.pwm_input), float(bool(esc.pwm_input)), 1.0, "-",
                         note="1585 はPWMでESCを駆動"))

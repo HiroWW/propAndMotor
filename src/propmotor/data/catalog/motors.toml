@@ -103,6 +103,7 @@ notes = "Official CN site 30 A/440 W vs US distributor 32 A/450 W."
 label = "AXI 2212/26 V3 (920)"
 jp_available = true
 jp_shop = "リトルベランカ"
+jp_note = "V3 の国内掲載ページは未確認 (ユーザー確認済み)"
 manufacturer = "AXI (Model Motors)"
 model = "2212/26 GOLD LINE V3"
 kv = 920
@@ -218,7 +219,8 @@ notes = ""
 [[motor]]
 label = "T-Motor AT2312-1150"
 jp_available = true
-jp_shop = "T-Motor 公式通販"
+jp_shop = "T-Motor 公式通販 (USD) / トーハセン (取り寄せ)"
+jp_url = "https://store.tmotor.com/goods.php?id=788"
 manufacturer = "T-Motor"
 model = "AT2312 Long Shaft KV1150"
 kv = 1150
@@ -260,6 +262,105 @@ prop_adapter = "threaded M5x0.8 + cross mount"
 mount = "16x19 mm, M3"
 price = "USD 49.99"
 url = "https://scorpionsystem.com/catalog/aeroplane/motors_1/s-22_v2/SII-2212-1400KV"
+notes = ""
+
+[[motor]]
+label = "Dualsky ECO 2316C-V2 (880)"
+jp_available = true
+jp_shop = "リトルベランカ"
+jp_url = "https://www.little-bellanca.com/SHOP/21312.html"
+price_jpy = 5500
+wiring = "3.5 mm オスバレット付き"
+bullet_mm = 3.5
+manufacturer = "Dualsky"
+model = "ECO 2316C-V2 880KV (51655)"
+kv = 880
+r_ohm = 0.093
+i0_a = 0.6
+i0_ref_v = 10.0
+i_max_a = 23
+i_max_note = "15 s burst"
+cells = "3-4S"
+mass_g = 72
+stator = "23x16"
+shaft_mm = 3.175
+prop_adapter = "cross / back-mount prop adapters included (thread not stated)"
+mount = "16x16 mm, M3 / cross mount 34 mm"
+price = "JPY 5,500"
+url = "https://Www.elefun.no/Uploads/Docs/39822_ECO 2312C2316C-V2_SPEC.pdf"
+notes = ""
+
+[[motor]]
+label = "Dualsky ECO 2312C-V2 (840)"
+jp_available = true
+jp_shop = "リトルベランカ"
+jp_url = "https://www.little-bellanca.com/SHOP/21311.html"
+price_jpy = 3850
+wiring = "3.5 mm オスバレット付き"
+bullet_mm = 3.5
+manufacturer = "Dualsky"
+model = "ECO 2312C-V2 840KV (51651)"
+kv = 840
+r_ohm = 0.140
+i0_a = 0.5
+i0_ref_v = 10.0
+i_max_a = 19
+cells = "3-4S"
+mass_g = 58
+stator = "23x12"
+shaft_mm = 3.175
+prop_adapter = "cross / back-mount prop adapters included (thread not stated)"
+mount = "16x16 mm, M3 / cross mount 34 mm"
+price = "JPY 3,850"
+url = "https://Www.elefun.no/Uploads/Docs/39822_ECO 2312C2316C-V2_SPEC.pdf"
+notes = ""
+
+[[motor]]
+label = "Dualsky ECO 2312C-V2 (1150)"
+jp_available = true
+jp_shop = "リトルベランカ"
+jp_url = "https://www.little-bellanca.com/SHOP/21310.html"
+price_jpy = 3850
+wiring = "3.5 mm オスバレット付き"
+bullet_mm = 3.5
+manufacturer = "Dualsky"
+model = "ECO 2312C-V2 1150KV (51649)"
+kv = 1150
+r_ohm = 0.0908
+i0_a = 0.7
+i0_ref_v = 10.0
+i_max_a = 23
+cells = "2-3S"
+mass_g = 58
+stator = "23x12"
+shaft_mm = 3.175
+prop_adapter = "cross / back-mount prop adapters included (thread not stated)"
+mount = "16x16 mm, M3 / cross mount 34 mm"
+price = "JPY 3,850"
+url = "https://Www.elefun.no/Uploads/Docs/39822_ECO 2312C2316C-V2_SPEC.pdf"
+notes = "Shop page lists 14 A (= max-efficiency current); datasheet max 23 A."
+
+[[motor]]
+label = "T-Motor AS2312-1150"
+jp_available = true
+jp_shop = "R/C ネットショップ ロビン"
+jp_url = "https://robin.jp/SHOP/TM-AS2312-1150.html"
+price_jpy = 3680
+manufacturer = "T-Motor (T-HOBBY)"
+model = "AS2312 Long Shaft KV1150"
+kv = 1150
+r_ohm = 0.081
+i0_a = 0.76
+i0_ref_v = 10.0
+i_max_a = 23
+i_max_note = "peak 180 s"
+cells = "3-4S"
+mass_g = 63
+shaft_mm = 4.0
+prop_adapter = "spinner-type and bolt-type adapters included"
+mount = "front / back mount (pattern not found)"
+price = "JPY 3,680"
+url = "https://www.ligpower.com/product/as2312-kv1150-motor.html"
 notes = ""
 
 # Excluded from modelling: no official R / I0 (retailer I0 1.6 A @10 V is implausible for 22x13).

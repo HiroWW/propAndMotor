@@ -33,6 +33,8 @@ class ESC:
     i_q_a: float = 0.03  # quiescent current [A]
     firmware: str = ""
     pwm_input: bool | None = None  # accepts standard 1000-2000 us servo PWM
+    motor_bullet_mm: float | None = None  # bullet connectors fitted on the motor leads
+    battery_connector: str = ""  # "XT60" / "Deans" / "bare"
     braking_configurable: bool | None = None
     mass_g: float | None = None
     price: str = ""

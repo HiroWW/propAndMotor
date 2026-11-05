@@ -1,6 +1,7 @@
 # Candidate ESCs (collected 2026-11). All accept standard servo PWM (the 1585 outputs 50 Hz, 1000-2000 us).
 # cells_min / cells: LiPo cell range; v_min = 3.0 V * cells_min, v_max = 4.2 V * cells_max.
 # jp_available: confirmed purchasable in Japan. needs_soldering: bare board (excluded by default).
+# motor_bullet_mm: bullets fitted on the motor side (no soldering). battery_connector: XT60/Deans/bare (bare -> lever connector).
 # regen_control: can active braking / active freewheeling (damped light, complementary PWM) be turned OFF?
 #   matters with a lab supply that cannot sink current (PWR401L).
 
@@ -8,6 +9,9 @@
 label = "Hobbywing Skywalker 20A V2"
 jp_available = true
 jp_shop = "Amazon.co.jp"
+wiring = "電源側 裸線 / モータ側 3.5 mm メスバレット付き (40A V2 と同系)"
+motor_bullet_mm = 3.5
+battery_connector = "bare"
 manufacturer = "Hobbywing"
 model = "Skywalker 20A V2"
 cells_min = 2
@@ -26,6 +30,7 @@ notes = "Default throttle range 1100-1940 us: calibrate. Fixed-wing ESC, program
 
 [[esc]]
 label = "Hobbywing FlyFun 20A V5"
+jp_available = false
 manufacturer = "Hobbywing"
 model = "FlyFun 20A V5"
 cells_min = 2
@@ -44,6 +49,13 @@ notes = "Default throttle range 1100-1940 us: calibrate."
 
 [[esc]]
 label = "Hobbywing Skywalker 40A V2"
+jp_available = true
+jp_shop = "セキド / Amazon.co.jp"
+jp_url = "https://sekido-rc.com/?pid=171731558"
+price_jpy = 3080
+wiring = "電源側 14AWG 裸線 (コネクタなし) / モータ側 3.5 mm メスバレット付き"
+motor_bullet_mm = 3.5
+battery_connector = "bare"
 manufacturer = "Hobbywing"
 model = "Skywalker 40A V2"
 cells_min = 3
@@ -53,12 +65,12 @@ i_burst_a = 60
 firmware = "proprietary (ARM M0)"
 pwm_input = true
 braking_configurable = true
-regen_note = "Brake: Disabled/Normal/...; DEO On/Off"
+regen_note = "Brake: Disabled (factory default)/Normal/Reverse; Active Freewheeling (DEO) On/Off (default On -> set Off). Official JP manual."
 bec = "switch 5 V / 5 A"
 mass_g = 36
-price = ""
+price = "JPY 3,080 (セキド)"
 url = "https://www.hobbywing.com/en/products/skywalker-v2-series274"
-notes = "Oversized for this test."
+notes = "Program card PG-CARD General (セキド JPY 1,760) or stick menu. Default throttle 1100-1940 us: calibrate. Set cutoff voltage Disabled."
 
 [[esc]]
 label = "Hobbywing XRotor 20A"
@@ -130,3 +142,124 @@ mass_g = 5.8
 price = "USD 23.99"
 url = "https://holybro.com/products/tekko32-f4-45a-esc"
 notes = "Bare FPV board (solder). Built-in current sensor; 330 uF/35 V cap included. PWM frequency 8-144 kHz configurable."
+
+[[esc]]
+label = "Hobbywing Skywalker 50A V2"
+jp_available = true
+jp_shop = "セキド / Amazon.co.jp"
+jp_url = "https://sekido-rc.com/?pid=173909261"
+price_jpy = 3960
+wiring = "電源側 14AWG 裸線 / モータ側 3.5 mm メスバレット付き"
+motor_bullet_mm = 3.5
+battery_connector = "bare"
+manufacturer = "Hobbywing"
+model = "Skywalker 50A V2"
+cells_min = 3
+cells = "3-4S"
+i_cont_a = 50
+i_burst_a = 70
+firmware = "proprietary"
+pwm_input = true
+braking_configurable = true
+regen_note = "Same menu as 40A V2: brake Disabled by default, Active Freewheeling On/Off."
+bec = "5 V / 5 A"
+mass_g = 36
+price = "JPY 3,960 (セキド)"
+url = "https://sekido-rc.com/?pid=173909261"
+notes = "Oversized; same size as 40A."
+
+[[esc]]
+label = "OK模型 TAHMAZO Pro.C R-30"
+jp_available = true
+jp_shop = "リトルベランカ"
+jp_url = "https://www.little-bellanca.com/SHOP/23529.html"
+price_jpy = 5148
+wiring = "リード線のみ (電源・モータ側ともコネクタ要)"
+battery_connector = "bare"
+manufacturer = "OK模型 (TAHMAZO)"
+model = "Pro.C R-30 (48931)"
+cells_min = 2
+cells = "2-4S"
+i_cont_a = 30
+i_burst_a = 50
+firmware = "proprietary"
+pwm_input = true
+braking_configurable = true
+regen_note = "ブレーキタイプ 無し/ノーマル/逆転; アクティブフリーホイリング ON/OFF (日本語取説)"
+bec = "5 V / 3 A"
+mass_g = 23
+price = "JPY 5,148"
+url = "http://www.tahmazo.jp/TahmaDL/manual/controller/pro_c-r/ProC-R-inst.pdf"
+notes = "Japanese manual. Throttle: 1500+-400 us; calibrate. Stick programming."
+
+[[esc]]
+label = "T-Motor AT 40A 4S"
+jp_available = true
+jp_shop = "R/C ネットショップ ロビン"
+jp_url = "https://robin.jp/SHOP/TM-AT-40A-4S.html"
+price_jpy = 3180
+wiring = "電源側 裸線 / モータ側 3.5 mm メスバレット付き"
+motor_bullet_mm = 3.5
+battery_connector = "bare"
+manufacturer = "T-Motor"
+model = "AT 40A 4S (fixed-wing)"
+cells_min = 2
+cells = "2-4S"
+i_cont_a = 40
+i_burst_a = 55
+firmware = "proprietary"
+pwm_input = true
+regen_note = "Brake type / freewheeling menu items per retailer only; values and defaults unverified (no manual found)."
+bec = "5 V / 3 A"
+mass_g = 38
+price = "JPY 3,180"
+url = "https://www.ligpower.com/product/at-40a-4s-fixed-wing-esc.html"
+notes = "T-Motor's recommended ESC for AT2312."
+
+[[esc]]
+label = "HTIRC Hornet 40A"
+jp_available = true
+jp_shop = "リトルベランカ"
+jp_url = "https://www.little-bellanca.com/SHOP/20775.html"
+price_jpy = 3300
+wiring = "電源側 Deans(T型)オス / モータ側 3.5 mm メスバレット付き"
+motor_bullet_mm = 3.5
+battery_connector = "Deans"
+manufacturer = "HTIRC"
+model = "Hornet 40A SBEC (1004030)"
+cells_min = 2
+cells = "2-6S"
+i_cont_a = 40
+i_burst_a = 50
+firmware = "proprietary"
+pwm_input = true
+regen_note = "Brake OFF by default (4 levels via program card); freewheel/damped behaviour not documented."
+bec = "5 V / 4 A"
+mass_g = 43
+price = "JPY 3,300"
+url = "https://item.rakuten.co.jp/little-bellanca/20775/"
+notes = ""
+
+[[esc]]
+label = "Dualsky XC2512BA V2"
+jp_available = true
+jp_shop = "R/C ネットショップ ロビン"
+jp_url = "https://robin.jp/SHOP/DS_XC2512BA.html"
+price_jpy = 3060
+wiring = "電源側 XT60 オス / モータ側 3.5 mm メスバレット付き (はんだ不要)"
+motor_bullet_mm = 3.5
+battery_connector = "XT60"
+manufacturer = "Dualsky"
+model = "XC2512BA V2 (25A)"
+cells_min = 2
+cells = "2-4S"
+i_cont_a = 25
+i_burst_a = 35
+firmware = "proprietary"
+pwm_input = true
+regen_note = "Brake can be disabled; freewheel/damped behaviour not documented."
+bec = "5 V / 2 A"
+mass_g = 30.9
+price = "JPY 3,060 (sale)"
+url = "https://robin.jp/SHOP/DS_XC2512BA.html"
+notes = "Dualsky's recommended ESC for ECO 2312C/2316C."

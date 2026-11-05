@@ -74,6 +74,7 @@ def load_escs(path: str | Path | None = None, jp_only: bool = False, allow_solde
             i_burst_a=d.get("i_burst_a"), r_on_ohm=float(d.get("r_on_ohm", 0.010)),
             firmware=d.get("firmware", ""), pwm_input=d.get("pwm_input"),
             braking_configurable=d.get("braking_configurable"), mass_g=d.get("mass_g"),
+            motor_bullet_mm=d.get("motor_bullet_mm"), battery_connector=d.get("battery_connector", ""),
             price=str(d.get("price", "")), url=d.get("url", ""), notes=d.get("notes", ""), meta=d,
         ))
     return out
