@@ -83,7 +83,7 @@ def power_diagram():
 
     card(ax, "psu.jpg", 1, 34, 18, 20, "安定化電源 菊水 PWR401L",
          "背面出力\n12.7 V / CC 10 A / OVP 16 V")
-    card(ax, "cp30_ba_1p.png", 28, 39, 11, 15, "DC ブレーカ CP30-BA", "1P・15 A・M4ねじ")
+    card(ax, "cp30fm_1p.jpg", 28, 39, 11, 15, "DC ブレーカ", "CP30FM-1P015 / 15 A")
     card(ax, "stand.png", 49, 30, 17, 24, "Tyto Robotics 1585", "電圧・電流・推力・トルク計測")
     card(ax, "esc.jpg", 84, 40, 20, 14, "ESC Skywalker 40A V2",
          "ブレーキ OFF・DEO OFF\n低電圧カット OFF")
