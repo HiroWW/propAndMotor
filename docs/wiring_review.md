@@ -1,4 +1,4 @@
-# 配線図の確認（2026-11-05）
+# 配線図の確認（2026-11-06更新）
 
 更新図：[全体](figures/wiring.png)／[非常停止・J1詳細](figures/estop_wiring.png)。
 公式原図：[取説9](images/tyto_power_system_schematic.png)。
@@ -10,7 +10,7 @@
 | ESC裸線 → WAGO 221 → XT60 → 1585 | 取説のESC + / −端子に直接ねじ固定する構成に変更。WAGOとXT60は必須ではない。 |
 | 電源からバナナ–XT60でブレーカへ | XT60不要。主案は背面出力のねじ端子から電線で接続し、バナナも省く。前面端子を使う案は後述。 |
 | 2本の線を「1P」ブレーカへ通すように見える | 1Pでは＋線だけを通す。−線は1585の入力へ直接つなぐ。両極遮断するなら2Pを別途選ぶ。 |
-| AC用ブレーカの外観写真 | メーカーのCP30-BA・1極の代表写真へ変更。選定は1P 1-M 15 A。 |
+| AC用ブレーカの外観写真 | 富士電機CP30F・1極のメーカー代表写真へ変更。採用品はCP30FM-1P015。 |
 | 光学回転計の接続が描かれていない | S1への3線接続と反射テープを追加。電気式RPM線は使わない。 |
 | サーボ線をそのまま接続 | 今回は1585のUSB 5 Vを選ぶため、ESCのBEC＋線を外して絶縁し、PWMとGNDを接続する。 |
 | 候補XW1E-BV401MRを1a1bとして使う | 401MRは1bのみ。1a1bの411MRを候補に変更。ただしJ1への微小負荷適合は未確認。 |
@@ -28,14 +28,18 @@ PWR401L背面− ───────────→ 1585入力−
 ESCの三相線3本 ↔ モータの三相線3本
 ```
 
+ブレーカは**富士電機CP30FM-1P015**を採用する。1極・15 A・中速形（M）、DC65 V対応、DC65 Vでの遮断容量2.5 kA。
+[モノタロウ](https://www.monotaro.com/p/2636/2272/)の注文コードは**26362272**、税込2,968円・当日出荷表示（2026-11-06調査、注文時に再確認）。
+
 1585の取説6は本体への電源ケーブル取り付けを示し、[同梱品欄](images/tyto_included.png)は「Power cables (2 × 75 cm)」を挙げている。
 「最初から本体に線が生えている」ことまでは断定できないが、付属の2本を使う考え方でよい。
 先端が裸線か圧着端子付きか、ブレーカ側に届くかは現物確認が必要。購入仕様や改版による違いは残る。
 取説9と11に示されるESC側の＋/−接続にXTコネクタは必須ではない。
 電源をESCへ直接つないで1585の電力計測部を迂回すると、電流・電力を正しく測れない。
 
-CP30-BAのねじ端子仕様は、20 A以下の主端子が**M4の線押え付きねじ**。
-14 AWG（約2.1 mm²）ならメーカー表の1.04–2.63 mm²の区分に入り、圧着端子例はR2-4、締付トルクは1.0–1.4 N·m。
+CP30FM-1P015の主端子は**M4のねじアップ端子**。
+14 AWG（約2.1 mm²）はメーカー指定の22–10 AWG（0.25–6.64 mm²）に入り、圧着端子例はR2-4、締付トルクは**1.2–1.5 N·m**。
+取付けはM4ねじ固定または35 mm DINレール。主回路はIP20相当の構造で、別売り端子カバーは不要。
 電線を必要長に切る → 被覆を剥く → 適合する端子を圧着する → ねじで固定する、という作業になる。
 バナナプラグ自体をブレーカへ挿すわけではない。電源側・1585側の端末はそれぞれの端子仕様に合わせる。
 ブレーカの線側/負荷側と取付方向も製品指示に従う。
@@ -141,10 +145,10 @@ NC経路の断線はOFFへ向かうものの、断線をつなぎ直した場合
 ここでの電源−は保護接地線PEとは別物である。
 
 DC定格・遮断容量・時間電流特性が適したヒューズとホルダでも過電流保護を構成できる。
-ヒューズは溶断後に交換が必要で、CP30-BAは原因を除去した後に手動復帰でき、手動の回路開閉にも使える。
+ヒューズは溶断後に交換が必要で、CP30FM-1P015は原因を除去した後に手動復帰でき、手動の回路開閉にも使える。
 ブレーカでなければ本試験が成立しないわけではない。
 
-CP30-BAと1585の間で＋線を切る位置自体に問題はない。ただしXW1E-BV411MRの接点をそこへ直接挟む案は採らない。
+ブレーカと1585の間で＋線を切る位置自体に問題はない。ただしXW1E-BV411MRの接点をそこへ直接挟む案は採らない。
 XWのDC30 Vでの開閉定格は抵抗負荷2 A、誘導負荷1 Aで、今回の主回路電流約5 Aより小さい。
 主回路を直接切るなら、DC主回路と負荷の遮断に適したスイッチまたは接触器を別に選び、解除だけで再始動しない仕組みも持たせる。
 
@@ -167,7 +171,8 @@ PWR-01取説p.101–103は、外部接点でのON/OFFと、接点を閉じると
 - [菊水PWR-01取説](https://www.kikusui.cn/resources/001/pdf/pwr-01_users_manual_en.pdf)：p.25–31、91–93、101–103、149（2020版）。OP03画像のメーカー図は[2019版ミラー](https://kikusui-korea.co.kr/files/PDF/PWR_01_M.pdf) p.90、148も確認。
 - [菊水J1オプションFAQ](https://vn.kikusui.co.jp/kikusupport/can-i-purchase-the-j1-connector-for-pwr-01-series/)：OP01とOP03。
 - [IDEC 411MR公式仕様](https://www.idec.com/ja-jp/switches-indicator-lights/switches-pushbuttons/emergency-stop-switches/xw-22mm-estop/xw1e-bv411mr)。[XW共通仕様](https://jp.idec.com/idec-jp/en/JPY/medias/SJPJA01A-D007D058-X.pdf?context=bWFzdGVyfHJvb3R8Mzg5MDU1MnxhcHBsaWNhdGlvbi9wZGZ8aDA4L2hjMS8zNDYyNDk3NjU1MTk2Ni9TSlBKQTAxQS1EMDA3RDA1OC1YLnBkZnxjZmJjMzA3ZDMwNzljMmM5OThiNWFlMTU4MjEwYjUyMGFkNmZlYTM3ZDA1YzMxNGNiNjYzN2M1YWNlZjdmM2Uw)：微小負荷。[メーカー英文カタログのミラー](https://media.onlinecomponents.com/productfiles/mf-id/xwseries.pdf)：p.265端子配列、p.267–268配線。
-- [三菱CPカタログ](https://dl.mitsubishielectric.co.jp/dl/fa/document/catalog/lvcb/yn-c-0573/y0573m1911.pdf)：DC定格、M4主端子、適合電線・圧着端子・締付トルク。
+- [富士電機CP30FM-1P015公式仕様](https://selector-fa.fujielectric.co.jp/products/goods/goodsprintpreview.aspx?goods=CP30FM-1P015&search=common)：1極・15 A・中速形、DC65 Vでの遮断容量2.5 kA。
+- [富士電機CP30Fカタログ62D1-J-0039h](https://felib.fujielectric.co.jp/ja/M10006/M20016/document_detail/8bc0e652-5a69-444a-97d9-f01fec862bef?region=jpn)：p.17のM4主端子、適合電線・圧着端子・締付トルク。[電線締付トルクの公式FAQ](https://faq-fa.fujielectric.co.jp/faq/show/884?site_domain=default)も参照。
 
 残る確認は、非常停止接点の0.5 mAでの使用可否と、手元の1585・OP03の端末／線径・基板版。
 メーカーへの照会や実機の導通・停止試験は実施していない。
